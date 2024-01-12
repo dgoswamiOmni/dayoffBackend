@@ -5,24 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="cf1207b8-ac55-45e8-8f5e-4d5010dea045" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/DayOffBackend.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Classes/trip_data_handler.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Classes/user_data_handler.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CreateLayers.sh" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/DayOffArchitecture.yaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Dockerfile" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Utils/auth_utils.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Utils/cassandra_utils.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Utils/mongo_utils.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Utils/secret_utils.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/deploy.sh" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/input_data.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/Dockerfile" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -131,7 +116,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1702902935761</updated>
-      <workItem from="1704718945039" duration="9523000" />
+      <workItem from="1704718945039" duration="14252000" />
     </task>
     <servers />
   </component>
@@ -141,11 +126,6 @@
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/.venv/lib/python3.9/site-packages/bson/raw_bson.py</url>
-          <line>64</line>
-          <option name="timeStamp" value="2" />
-        </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/Classes/user_data_handler.py</url>
           <line>94</line>

@@ -2,7 +2,6 @@ anyio==4.2.0
 attrs==23.1.0
 boto3==1.15.2
 botocore==1.18.18
-bson==0.5.10
 cassandra-driver==3.28.0
 cffi==1.16.0
 click==8.1.7
