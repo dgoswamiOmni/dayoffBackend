@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
 from Classes.user_data_handler import UserDataHandler
 from Classes.trip_data_handler import TripDataHandler
+from Classes.messaging_room_handler import MessagingRoom
 from Utils.mongo_utils import MongoUtils
 
 
@@ -94,8 +95,17 @@ async def send_trip_invitation(event: dict):
 async def filter_and_sort_trips(event: dict):
     return await trip_handler.filter_and_sort_trips(event)
 
+@app.post("/messaging/send", response_model=dict)
+async def send_message_to_room(event: dict):
+    messaging_handler = MessagingRoom(db=user,room_id=None,trip_id=None)
+    return await messaging_handler.send_message(event)
+
+@app.get("/messaging/retrieve", response_model=dict)
+async def retrieve_messages_from_room(room_id: str):
+    messaging_handler = MessagingRoom(db=user, room_id=room_id,trip_id=None)
+    return await messaging_handler.get_messages(room_id)
 
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8080)
+    uvicorn.run(app, host="0.0.0.0", port=8090)

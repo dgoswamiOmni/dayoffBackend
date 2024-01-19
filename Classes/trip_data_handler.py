@@ -5,6 +5,7 @@ from bson import ObjectId
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import OAuth2AuthorizationCodeBearer
 from Utils.auth_utils import validate_jwt_token
+from Classes.messaging_room_handler import MessagingRoom
 
 
 # from auth_utils import db
@@ -31,9 +32,16 @@ class TripDataHandler:
                     'trip_id': ''.join([str(random.randint(0, 9)) for _ in range(10)])
                 }
                 result = await self.db.trip.insert_one(trip_details)
-                return {'statusCode': 200,
-                        'body': json.dumps(
-                            {'message': 'Trip created successfully', 'trip_id': str(result.inserted_id)})}
+                room_id = ''.join([str(random.randint(0, 9)) for _ in range(10)])
+                messaging_room = MessagingRoom(db=self.db, room_id=room_id, trip_id=trip_details['trip_id'],
+                                               participants=[decoded_token['sub']])
+
+                # Save the messaging room details in the database
+                await self.db.messaging_room.insert_one(messaging_room.to_dict())
+
+                return {'statusCode': 200, 'body': json.dumps(
+                    {'message': 'Trip and messaging room created successfully', 'trip_id': str(result.inserted_id),
+                     'room_id': room_id})}
             else:
                 return {'statusCode': 401, 'body': json.dumps({'message': 'Invalid or expired token'})}
         except Exception as e:
@@ -58,6 +66,12 @@ class TripDataHandler:
             # Add the username to the list of participants
             await self.db.trip.update_one({"trip_id": trip_id}, {'$addToSet': {'participants': username}})
 
+            # Add the username to the messaging room participants
+            await self.db.messaging_room.update_one(
+                {"trip_id": trip_id},
+                {'$addToSet': {'participants': username}}
+            )
+
             return {'statusCode': 200, 'body': json.dumps({'message': 'Joined trip successfully'})}
 
         except Exception as e:
@@ -81,6 +95,12 @@ class TripDataHandler:
 
             # Remove the user from the list of participants
             await  self.db.trip.update_one({"trip_id": trip_id}, {'$pull': {'participants': username}})
+
+            # Remove the user from the messaging room participants
+            await self.db.messaging_room.update_one(
+                {"trip_id": trip_id},
+                {'$pull': {'participants': username}}
+            )
 
             return {'statusCode': 200, 'body': json.dumps({'message': 'Left trip successfully'})}
         except Exception as e:
