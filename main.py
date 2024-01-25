@@ -6,7 +6,6 @@ from Classes.trip_data_handler import TripDataHandler
 from Classes.messaging_room_handler import MessagingRoom
 from Utils.mongo_utils import MongoUtils
 
-
 app = FastAPI()
 handler = Mangum(app)
 
@@ -56,9 +55,9 @@ async def logout_user(username: str, token: str):
 
 
 @app.post("/putUserData", response_model=dict)
-async def put_user_data(username: str, email: str, password: str):
+async def put_user_data(username: str, email: str, password: str, image_data: bytes):
     user_handler = UserDataHandler(username=username, password=password, email=email)
-    return await user_handler.put_user_data(user)
+    return await user_handler.put_user_data(user, image_data)
 
 
 @app.get("/getUserData", response_model=dict)
@@ -95,15 +94,18 @@ async def send_trip_invitation(event: dict):
 async def filter_and_sort_trips(event: dict):
     return await trip_handler.filter_and_sort_trips(event)
 
+
 @app.post("/messaging/send", response_model=dict)
 async def send_message_to_room(event: dict):
-    messaging_handler = MessagingRoom(db=user,room_id=None,trip_id=None)
+    messaging_handler = MessagingRoom(db=user, room_id=None, trip_id=None)
     return await messaging_handler.send_message(event)
+
 
 @app.get("/messaging/retrieve", response_model=dict)
 async def retrieve_messages_from_room(room_id: str):
-    messaging_handler = MessagingRoom(db=user, room_id=room_id,trip_id=None)
+    messaging_handler = MessagingRoom(db=user, room_id=room_id, trip_id=None)
     return await messaging_handler.get_messages(room_id)
+
 
 if __name__ == "__main__":
     import uvicorn

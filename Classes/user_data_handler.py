@@ -1,9 +1,11 @@
+import os
 import json
 from passlib.hash import pbkdf2_sha256
 from Utils.auth_utils import generate_jwt_token, log_login, log_logout, validate_jwt_token
 from bson import ObjectId
 from fastapi import HTTPException
 from datetime import datetime
+from s3_utils import upload_to_s3
 
 
 class UserDataHandler:
@@ -72,7 +74,7 @@ class UserDataHandler:
             print(f"Exception in logout_user: {str(e)}")
             return {'statusCode': 500, 'body': json.dumps({'message': 'Internal Server Error'})}
 
-    async def put_user_data(self, db):
+    async def put_user_data(self, db, image_data):
         try:
             # Insert new user data into MongoDB
             user_data = {
@@ -81,6 +83,9 @@ class UserDataHandler:
                 "password_hash": pbkdf2_sha256.hash(self.password),
             }
             result = await db.user.insert_one(user_data)
+            # Call put_profile_picture to upload the profile picture
+            await self.put_profile_picture(db, str(result.inserted_id), image_data)
+
             return {"message": "Data inserted successfully", "user_id": str(result.inserted_id)}
         except Exception as e:
             # Log the exception
@@ -93,13 +98,35 @@ class UserDataHandler:
             user_data = await db.user.find_one({"user_name": self.username})
 
             if user_data:
-                return {"user_data": str(user_data)}
+                return {
+                    "user_data": {
+                        "user_name": user_data["user_name"],
+                        "email_id": user_data["email_id"],
+                        "profile_picture": user_data.get("profile_picture", None),
+                    }
+                }
             else:
                 raise HTTPException(status_code=404, detail="User not found")
         except Exception as e:
             # Log the exception
             print(f"Exception in get_user_data: {str(e)}")
             return {'statusCode': 500, 'body': json.dumps({'message': 'Internal Server Error'})}
+
+    async def put_profile_picture(self, db, user_id, image_data):
+        try:
+            # Upload image to S3 using the utility function
+            bucket_name = os.environ.get('S3_BUCKET_NAME')
+            file_name = f"{user_id}.png"  # Assuming the image is in PNG format
+            s3_url = upload_to_s3(bucket_name, file_name, image_data)
+
+            # Update user data in the database with the S3 URL
+            await db.user.update_one({"user_name": self.username}, {"$set": {"profile_picture": s3_url}})
+
+            return {"message": "Profile picture uploaded successfully"}
+        except Exception as e:
+            # Log the exception
+            print(f"Exception in put_profile_picture: {str(e)}")
+            return {"statusCode": 500, "body": json.dumps({'message': 'Internal Server Error'})}
 
 # Example usage:
 # user_handler = UserDataHandler(username="john_doe", password="password123", email="john_doe@example.com")

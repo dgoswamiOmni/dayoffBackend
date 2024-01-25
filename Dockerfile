@@ -1,6 +1,11 @@
 # Use an official Python runtime as a parent image
 FROM python:3.9-slim
 
+# Set environment variables for AWS
+ENV AWS_ACCESS_KEY_ID=your_access_key_id
+ENV AWS_SECRET_ACCESS_KEY=your_secret_access_key
+ENV S3_BUCKET_NAME=your_s3_bucket_name
+
 # Set the working directory to /app
 WORKDIR /app
 
