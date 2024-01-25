@@ -1,9 +1,10 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
 from Classes.user_data_handler import UserDataHandler
 from Classes.trip_data_handler import TripDataHandler
 from Classes.messaging_room_handler import MessagingRoom
+from Classes.otp_handler import OtpHandler
 from Utils.mongo_utils import MongoUtils
 
 app = FastAPI()
@@ -29,6 +30,8 @@ user_instance = MongoUtils(collection_name="user")
 user = user_instance.connect_to_database()
 
 trip_handler = TripDataHandler(user)
+otp_handler = OtpHandler(user)  # Replace otp_collection with your actual MongoDB collection
+
 
 
 # oauth2_scheme = OAuth2AuthorizationCodeBearer(tokenUrl="token")
@@ -106,6 +109,11 @@ async def retrieve_messages_from_room(room_id: str):
     messaging_handler = MessagingRoom(db=user, room_id=room_id, trip_id=None)
     return await messaging_handler.get_messages(room_id)
 
+
+
+@app.post("/validate-otp", response_model=dict)
+async def validate_otp_message(username: str, otp: str = Query(..., min_length=6, max_length=6)):
+    return otp_handler.validate_otp_message(username, otp)
 
 if __name__ == "__main__":
     import uvicorn

@@ -9,10 +9,12 @@ from s3_utils import upload_to_s3
 
 
 class UserDataHandler:
-    def __init__(self, username, password, email):
+    def __init__(self, username, password, email, otp_handler):
         self.username = username
         self.password = password
         self.email = email
+        self.otp_handler = otp_handler
+
 
     async def authenticate_user(self, db):
         try:
@@ -85,6 +87,9 @@ class UserDataHandler:
             result = await db.user.insert_one(user_data)
             # Call put_profile_picture to upload the profile picture
             await self.put_profile_picture(db, str(result.inserted_id), image_data)
+
+            # Send OTP
+            await self.otp_handler.send_otp_sms(phone_number="user_phone_number", username=self.username)
 
             return {"message": "Data inserted successfully", "user_id": str(result.inserted_id)}
         except Exception as e:
