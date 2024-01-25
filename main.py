@@ -26,13 +26,12 @@ app.add_middleware(
 # trip_instance = MongoUtils(collection_name="trip")
 # trip = trip_instance.connect_to_database()
 
-user_instance = MongoUtils(collection_name="user")
-user = user_instance.connect_to_database()
+mongo_instance = MongoUtils()
+mongo = mongo_instance.connect_to_database()
 
-trip_handler = TripDataHandler(user)
-otp_handler = OtpHandler(user)  # Replace otp_collection with your actual MongoDB collection
-
-
+# initialize an instance of the trip_data_handler and otp_handler class
+trip_handler = TripDataHandler(mongo)
+otp_handler = OtpHandler(mongo)
 
 # oauth2_scheme = OAuth2AuthorizationCodeBearer(tokenUrl="token")
 #
@@ -48,26 +47,26 @@ otp_handler = OtpHandler(user)  # Replace otp_collection with your actual MongoD
 @app.post("/login", response_model=dict)
 async def login_user(username: str, password: str):
     user_handler = UserDataHandler(username=username, password=password, email="")
-    return await user_handler.authenticate_user(user)
+    return await user_handler.authenticate_user(mongo)
 
 
 @app.post("/logout", response_model=dict)
 async def logout_user(username: str, token: str):
     user_handler = UserDataHandler(username=username, password="", email="")
-    return await user_handler.logout_user(user, token)
+    return await user_handler.logout_user(mongo, token)
 
 
 @app.post("/putUserData", response_model=dict)
 async def put_user_data(username: str, email: str, password: str, image_data: bytes):
     user_handler = UserDataHandler(username=username, password=password, email=email)
-    return await user_handler.put_user_data(user, image_data)
+    return await user_handler.put_user_data(mongo, image_data)
 
 
 @app.get("/getUserData", response_model=dict)
 async def get_user_data(username: str):
     try:
         user_handler = UserDataHandler(username=username, password="", email="")
-        return await user_handler.get_user_data(user)
+        return await user_handler.get_user_data(mongo)
     except HTTPException as e:
         # If it's an HTTPException, return a detailed error response
         return {"statusCode": e.status_code, "error": str(e.detail)}
@@ -100,15 +99,14 @@ async def filter_and_sort_trips(event: dict):
 
 @app.post("/messaging/send", response_model=dict)
 async def send_message_to_room(event: dict):
-    messaging_handler = MessagingRoom(db=user, room_id=None, trip_id=None)
+    messaging_handler = MessagingRoom(db=mongo, room_id=None, trip_id=None)
     return await messaging_handler.send_message(event)
 
 
 @app.get("/messaging/retrieve", response_model=dict)
 async def retrieve_messages_from_room(room_id: str):
-    messaging_handler = MessagingRoom(db=user, room_id=room_id, trip_id=None)
+    messaging_handler = MessagingRoom(db=mongo, room_id=room_id, trip_id=None)
     return await messaging_handler.get_messages(room_id)
-
 
 
 @app.post("/validate-otp", response_model=dict)

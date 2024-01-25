@@ -8,7 +8,7 @@ import boto3
 class OtpHandler:
     def __init__(self, otp_collection):
         self.otp_collection = otp_collection
-        self.sns_client = boto3.client('sns', region_name='your_region')
+        self.sns_client = boto3.client('sns', region_name=os.environ.get('AWS_REGION'))
 
     def send_otp_sms(self, phone_number, username):
         generated_otp = str(random.randint(100000, 999999))
