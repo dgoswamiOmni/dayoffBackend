@@ -5,18 +5,19 @@ import random
 from pymongo import MongoClient
 import boto3
 
+
 class OtpHandler:
     def __init__(self, otp_collection):
         self.otp_collection = otp_collection
         self.sns_client = boto3.client('sns', region_name=os.environ.get('AWS_REGION'))
 
-    def send_otp_sms(self, phone_number, username):
+    def send_otp_sms(self, email, username):
         generated_otp = str(random.randint(100000, 999999))
         expiration_time = int(time.time()) + 300  # OTP expires in 5 minutes
 
         # Store OTP and expiration time in MongoDB
         self.otp_collection.update_one(
-            {'phone_number': phone_number},
+            {'email': email},
             {'$set': {'otp': generated_otp, 'expiration_time': expiration_time}},
             upsert=True
         )
@@ -24,7 +25,7 @@ class OtpHandler:
         # Send OTP via SNS
         message = f'Hello {username}, your OTP is: {generated_otp}'
         self.sns_client.publish(
-            PhoneNumber=phone_number,
+            Email=email,
             Message=message
         )
 
