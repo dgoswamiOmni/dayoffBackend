@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import OAuth2AuthorizationCodeBearer
 from Utils.auth_utils import validate_jwt_token
 from Classes.messaging_room_handler import MessagingRoom
+import datetime
 
 
 # from auth_utils import db
@@ -16,25 +17,31 @@ class TripDataHandler:
 
     async def create_trip(self, event):
         try:
-            token = event['headers'].get('Authorization', '').split('Bearer ')[-1]
+            # token = event['headers'].get('Authorization', '').split('Bearer ')[-1]
+            token = event.get('headers', {}).get('Authorization', '').split('Bearer ')[-1]
             decoded_token = validate_jwt_token(token)
 
             if decoded_token:
                 # User is authenticated, proceed with creating a trip
+                current_time = datetime.datetime.utcnow().isoformat()
+
                 body = json.loads(event['body'])
+                creator_participant = 1
                 trip_details = {
-                    'username': decoded_token['sub'],
-                    'date': body.get('date'),
-                    'time': body.get('time'),
+                    'creator_email': decoded_token.get('email'),  # Use creator's email instead of username
+                    'start_date': body.get('start_date'),  # Include start date
+                    'end_date': body.get('end_date'),  # Include end date
+                    # 'time': body.get('time'),
                     'location': body.get('location'),
                     'description': body.get('description'),
-                    'participants': [decoded_token['sub']],
-                    'trip_id': ''.join([str(random.randint(0, 9)) for _ in range(10)])
+                    'participants': [creator_participant] + body.get('participants', []),
+                    'trip_id': ''.join([str(random.randint(0, 9)) for _ in range(10)]),
+                    'created_at': current_time  # Include the time and date of creation
                 }
                 result = await self.db.trip.insert_one(trip_details)
                 room_id = ''.join([str(random.randint(0, 9)) for _ in range(10)])
                 messaging_room = MessagingRoom(db=self.db, room_id=room_id, trip_id=trip_details['trip_id'],
-                                               participants=[decoded_token['sub']])
+                                               participants=[creator_participant])
 
                 # Save the messaging room details in the database
                 await self.db.messaging_room.insert_one(messaging_room.to_dict())
@@ -45,7 +52,7 @@ class TripDataHandler:
             else:
                 return {'statusCode': 401, 'body': json.dumps({'message': 'Invalid or expired token'})}
         except Exception as e:
-            return {'statusCode': 500, 'body': json.dumps({'message': 'Internal Server Error', 'Exception': e})}
+            return {'statusCode': 500, 'body': json.dumps({'message': 'Internal Server Error', 'Exception': str(e)})}
 
     async def join_trip(self, event):
         try:
