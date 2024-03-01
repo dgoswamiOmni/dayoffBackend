@@ -1,7 +1,7 @@
 # trip_data_handler.py
 import random
 import json
-from bson import ObjectId
+from bson import ObjectId, json_util
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import OAuth2AuthorizationCodeBearer
 from Utils.auth_utils import validate_jwt_token
@@ -17,41 +17,35 @@ class TripDataHandler:
 
     async def create_trip(self, event):
         try:
-            # token = event['headers'].get('Authorization', '').split('Bearer ')[-1]
-            token = event.get('headers', {}).get('Authorization', '').split('Bearer ')[-1]
-            decoded_token = validate_jwt_token(token)
+            current_time = datetime.datetime.utcnow().isoformat()
 
-            if decoded_token:
-                # User is authenticated, proceed with creating a trip
-                current_time = datetime.datetime.utcnow().isoformat()
+            trip_details = {
+                'creator_email': event.get('creator_email'),  # Use creator's email instead of username
+                'start_date': datetime.datetime.strptime(event.get('start_date'), '%a %b %d %Y %H:%M:%S %Z%z').strftime('%Y-%m-%d'),  # Include start date
+                'end_date': datetime.datetime.strptime(event.get('end_date'), '%a %b %d %Y %H:%M:%S %Z%z').strftime('%Y-%m-%d'),  # Include end date
+                # 'time': body.get('time'),
+                'location': event.get('location'),
+                'description': event.get('description'),
+                'participants': [0 for _ in range(event.get('participants'))],
+                'trip_id': ''.join([str(random.randint(0, 9)) for _ in range(10)]),
+                'created_at': current_time  # Include the time and date of creation
+            }
+            trip_details['participants'][0] = event.get('creator_email')
 
-                body = json.loads(event['body'])
-                creator_participant = 1
-                trip_details = {
-                    'creator_email': decoded_token.get('email'),  # Use creator's email instead of username
-                    'start_date': body.get('start_date'),  # Include start date
-                    'end_date': body.get('end_date'),  # Include end date
-                    # 'time': body.get('time'),
-                    'location': body.get('location'),
-                    'description': body.get('description'),
-                    'participants': [creator_participant] + body.get('participants', []),
-                    'trip_id': ''.join([str(random.randint(0, 9)) for _ in range(10)]),
-                    'created_at': current_time  # Include the time and date of creation
-                }
-                result = await self.db.trip.insert_one(trip_details)
-                room_id = ''.join([str(random.randint(0, 9)) for _ in range(10)])
-                messaging_room = MessagingRoom(db=self.db, room_id=room_id, trip_id=trip_details['trip_id'],
-                                               participants=[creator_participant])
+            result = await self.db.trip.insert_one(trip_details)
 
-                # Save the messaging room details in the database
-                await self.db.messaging_room.insert_one(messaging_room.to_dict())
+            room_id = ''.join([str(random.randint(0, 9)) for _ in range(10)])
+            messaging_room = MessagingRoom(db=self.db, room_id=room_id, trip_id=trip_details['trip_id'],
+                                           participants=[{trip_details.get('creator_email'): 'Name'}])
 
-                return {'statusCode': 200, 'body': json.dumps(
-                    {'message': 'Trip and messaging room created successfully', 'trip_id': str(result.inserted_id),
-                     'room_id': room_id})}
-            else:
-                return {'statusCode': 401, 'body': json.dumps({'message': 'Invalid or expired token'})}
+            # Save the messaging room details in the database
+            await self.db.messaging_room.insert_one(messaging_room.to_dict())
+
+            return {'statusCode': 200, 'body': json.dumps(
+                {'message': 'Trip and messaging room created successfully', 'trip_id': str(result.inserted_id),
+                 'room_id': room_id})}
         except Exception as e:
+            print(e)
             return {'statusCode': 500, 'body': json.dumps({'message': 'Internal Server Error', 'Exception': str(e)})}
 
     async def join_trip(self, event):
@@ -138,27 +132,49 @@ class TripDataHandler:
         except Exception as e:
             return {'statusCode': 500, 'body': json.dumps({'message': 'Internal Server Error'})}
 
-    def filter_and_sort_trips(self, event):
+    async def filter_and_sort_trips(self, event):
         try:
-            # Get query parameters from the URL
-            location = event['queryStringParameters'].get('location')
-            date = event['queryStringParameters'].get('date')
+            # Get query parameters from the event
+            creator_email = event.get('creator_email')
+            user_email = event.get('user_email')
+            location = event.get('location')
+            start_date = event.get('start_date')
+            end_date = event.get('end_date')
 
             # Define a base query
             query = {}
 
             # Add filters based on user preferences
+
+            # used to get the user's created trips
+            if creator_email:
+                query['creator_email'] = creator_email
+
+            # used to get any trips that the user has joined
+            if user_email:
+                query['participants'] = {"$in": [user_email]}
+
             if location:
                 query['location'] = location
 
-            if date:
-                query['date'] = date
+            if start_date and end_date:
+                query['start_date'] = {'$gte': start_date, '$lte': end_date}
+                query['end_date'] = {'$gte': start_date, '$lte': end_date}
 
             # Fetch trips from the database based on the query
-            trips = self.db.trip.find(query)
+            cursor = self.db.trip.find(query)
+
+            # parse data so its more readable
+            def parse_json(data):
+                return json.loads(json_util.dumps(data))
+
+            # .find() returns a cursor so async iterate through to get every document
+            trips = []
+            async for doc in cursor:
+                trips.append(parse_json(doc))
 
             # Sort trips based on a specific criterion (e.g., date)
-            sorted_trips = sorted(trips, key=lambda x: x.get('date', ''))
+            sorted_trips = sorted(trips, key=lambda x: x.get('start_date', ''))
 
             # Return the filtered and sorted trips
             return {
@@ -166,4 +182,5 @@ class TripDataHandler:
                 'body': json.dumps({'message': 'Trips filtered and sorted successfully', 'trips': sorted_trips})
             }
         except Exception as e:
+            print("error", e)
             return {'statusCode': 500, 'body': json.dumps({'message': 'Internal Server Error'})}

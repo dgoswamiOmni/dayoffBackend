@@ -19,12 +19,13 @@ class UserDataHandler:
     async def authenticate_user(self, db):
         try:
             # Check if the user exists
-            user = await db.user.find_one({"user_name": self.username})
+            user = await db.user.find_one({"email_id": self.email})
 
             if not user:
                 return {'statusCode': 401, 'body': json.dumps({'message': 'Invalid credentials'})}
 
             hashed_password = user['password_hash']
+
 
             # Verify the password
             if not pbkdf2_sha256.verify(self.password, hashed_password):
@@ -76,7 +77,7 @@ class UserDataHandler:
             print(f"Exception in logout_user: {str(e)}")
             return {'statusCode': 500, 'body': json.dumps({'message': 'Internal Server Error'})}
 
-    async def put_user_data(self, db, image_data):
+    async def put_user_data(self, db):
         try:
             # Insert new user data into MongoDB
             user_data = {
@@ -86,10 +87,10 @@ class UserDataHandler:
             }
             result = await db.user.insert_one(user_data)
             # Call put_profile_picture to upload the profile picture
-            await self.put_profile_picture(db, str(result.inserted_id), image_data)
+            #await self.put_profile_picture(db, str(result.inserted_id))
 
             # Send OTP
-            await self.otp_handler.send_otp_sms(phone_number="user_phone_number", username=self.username)
+            #await self.otp_handler.send_otp_sms(email=self.email, username=self.username)
 
             return {"message": "Data inserted successfully", "user_id": str(result.inserted_id)}
         except Exception as e:

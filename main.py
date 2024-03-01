@@ -45,27 +45,31 @@ otp_handler = OtpHandler(mongo)
 #     return user
 
 @app.post("/login", response_model=dict)
-async def login_user(username: str, password: str):
-    user_handler = UserDataHandler(username=username, password=password, email="")
+async def login_user(event: dict):
+    password, email = event.get('password'), event.get('email')
+    user_handler = UserDataHandler(username="", password=password, email=email, otp_handler=otp_handler)
     return await user_handler.authenticate_user(mongo)
 
 
 @app.post("/logout", response_model=dict)
-async def logout_user(username: str, token: str):
+async def logout_user(event: dict):
+    username, token = event.get('username'), event.get('token')
     user_handler = UserDataHandler(username=username, password="", email="")
     return await user_handler.logout_user(mongo, token)
 
 
 @app.post("/putUserData", response_model=dict)
-async def put_user_data(username: str, email: str, password: str, image_data: bytes):
-    user_handler = UserDataHandler(username=username, password=password, email=email)
-    return await user_handler.put_user_data(mongo, image_data)
+async def put_user_data(event: dict):
+    username, email, password = event.get('username'), event.get('email'), event.get('password')
+    user_handler = UserDataHandler(username=username, password=password, email=email, otp_handler=otp_handler)
+    return await user_handler.put_user_data(mongo)
 
 
-@app.get("/getUserData", response_model=dict)
-async def get_user_data(username: str):
+@app.post("/getUserData", response_model=dict)
+async def get_user_data(event: dict):
     try:
-        user_handler = UserDataHandler(username=username, password="", email="")
+        email = event.get('email')
+        user_handler = UserDataHandler(username="", password="", email=email)
         return await user_handler.get_user_data(mongo)
     except HTTPException as e:
         # If it's an HTTPException, return a detailed error response
@@ -92,7 +96,7 @@ async def send_trip_invitation(event: dict):
     return await trip_handler.send_trip_invitation(event)
 
 
-@app.get("/trips/filter", response_model=dict)
+@app.post("/trips/filter", response_model=dict)
 async def filter_and_sort_trips(event: dict):
     return await trip_handler.filter_and_sort_trips(event)
 
@@ -113,7 +117,9 @@ async def retrieve_messages_from_room(room_id: str):
 async def validate_otp_message(username: str, otp: str = Query(..., min_length=6, max_length=6)):
     return otp_handler.validate_otp_message(username, otp)
 
+
 if __name__ == "__main__":
     import uvicorn
 
+    # 100.88.29.71
     uvicorn.run(app, host="0.0.0.0", port=8090)
