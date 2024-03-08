@@ -80,6 +80,10 @@ async def get_user_data(event: dict):
 async def create_trip(event: dict):
     return await trip_handler.create_trip(event)
 
+@app.post("/trips/update", response_model=dict)
+async def update_def(event: dict):
+    return await trip_handler.update_trip(event)
+
 
 @app.post("/trips/join", response_model=dict)
 async def join_trip(event: dict):
@@ -104,12 +108,15 @@ async def filter_and_sort_trips(event: dict):
 @app.post("/messaging/send", response_model=dict)
 async def send_message_to_room(event: dict):
     messaging_handler = MessagingRoom(db=mongo, room_id=None, trip_id=None)
+    # get room id from trip id
+    event['room_id'] = messaging_handler.get_room_id(event.get('trip_id'))
     return await messaging_handler.send_message(event)
 
 
-@app.get("/messaging/retrieve", response_model=dict)
-async def retrieve_messages_from_room(room_id: str):
-    messaging_handler = MessagingRoom(db=mongo, room_id=room_id, trip_id=None)
+@app.post("/messaging/retrieve", response_model=dict)
+async def retrieve_messages_from_room(event: dict):
+    messaging_handler = MessagingRoom(db=mongo, room_id=None, trip_id=None)
+    room_id = messaging_handler.get_room_id(event.get('trip_id'))
     return await messaging_handler.get_messages(room_id)
 
 
@@ -122,4 +129,4 @@ if __name__ == "__main__":
     import uvicorn
 
     # 100.88.29.71
-    uvicorn.run(app, host="0.0.0.0", port=8090)
+    uvicorn.run(app, host="100.88.28.154", port=8090)

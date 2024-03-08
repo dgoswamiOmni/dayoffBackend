@@ -21,20 +21,17 @@ class MessagingRoom:
 
         }
 
-    async def send_message(self,event):
+    # TODO: get the room id from the trip id
+    # there is a one-to-one relationship between trip id and room id
+    def get_room_id(self, trip_id: str):
+        return "11"
+
+    async def send_message(self, event):
         try:
             # Extract data from the request payload
-            token = event['headers'].get('Authorization', '').split('Bearer ')[-1]
-            decoded_token = validate_jwt_token(token)
-
-
-            if not decoded_token:
-                return {'statusCode': 401, 'body': json.dumps({'message': 'Invalid or expired token'})}
-
-            body = json.loads(event['body'])
-            room_id = body.get('room_id')
-            sender = decoded_token['sub']
-            message_text = body.get('message')
+            room_id = event.get('room_id')
+            sender = event.get('user_email')
+            message_text = event.get('message')
 
             # Add logic to send messages to the messaging room
             timestamp = datetime.utcnow()

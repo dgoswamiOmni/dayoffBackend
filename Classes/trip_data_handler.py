@@ -51,12 +51,11 @@ class TripDataHandler:
     async def join_trip(self, event):
         try:
             # Extract trip ID and username from the request
-            body = json.loads(event['body'])
-            trip_id = body.get('trip_id')
-            username = body.get('username')
+            trip_id = event.get('trip_id')
+            email = event.get('email')
 
             # Validate the presence of required parameters
-            if not (trip_id or username):
+            if not (trip_id or email):
                 return {'statusCode': 400, 'body': json.dumps({'message': 'Missing required parameters'})}
 
             # Check if the trip exists
@@ -65,12 +64,12 @@ class TripDataHandler:
                 return {'statusCode': 404, 'body': json.dumps({'message': 'Trip not found'})}
 
             # Add the username to the list of participants
-            await self.db.trip.update_one({"trip_id": trip_id}, {'$addToSet': {'participants': username}})
+            await self.db.trip.update_one({"trip_id": trip_id}, {'$addToSet': {'participants': email}})
 
             # Add the username to the messaging room participants
             await self.db.messaging_room.update_one(
                 {"trip_id": trip_id},
-                {'$addToSet': {'participants': username}}
+                {'$addToSet': {'participants': email}}
             )
 
             return {'statusCode': 200, 'body': json.dumps({'message': 'Joined trip successfully'})}
@@ -81,12 +80,11 @@ class TripDataHandler:
     async def leave_trip(self, event):
         try:
             # Extract trip ID and user ID from the request
-            body = json.loads(event['body'])
-            trip_id = body.get('trip_id')
-            username = body.get('username')
+            trip_id = event.get('trip_id')
+            email = event.get('email')
 
             # Validate the presence of required parameters
-            if not trip_id or not username:
+            if not trip_id or not email:
                 return {'statusCode': 400, 'body': json.dumps({'message': 'Missing required parameters'})}
 
             # Check if the trip exists
@@ -95,12 +93,12 @@ class TripDataHandler:
                 return {'statusCode': 404, 'body': json.dumps({'message': 'Trip not found'})}
 
             # Remove the user from the list of participants
-            await  self.db.trip.update_one({"trip_id": trip_id}, {'$pull': {'participants': username}})
+            await self.db.trip.update_one({"trip_id": trip_id}, {'$pull': {'participants': email}})
 
             # Remove the user from the messaging room participants
             await self.db.messaging_room.update_one(
                 {"trip_id": trip_id},
-                {'$pull': {'participants': username}}
+                {'$pull': {'participants': email}}
             )
 
             return {'statusCode': 200, 'body': json.dumps({'message': 'Left trip successfully'})}
@@ -161,6 +159,7 @@ class TripDataHandler:
                 query['start_date'] = {'$gte': start_date, '$lte': end_date}
                 query['end_date'] = {'$gte': start_date, '$lte': end_date}
 
+            # TODO: handle getting trips when an array is passed to location and start_date and end_date
             # Fetch trips from the database based on the query
             cursor = self.db.trip.find(query)
 
@@ -184,3 +183,7 @@ class TripDataHandler:
         except Exception as e:
             print("error", e)
             return {'statusCode': 500, 'body': json.dumps({'message': 'Internal Server Error'})}
+
+    async def update_trip(self, event: dict):
+        #TODO: update the trip in the database
+        return None
