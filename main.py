@@ -64,6 +64,18 @@ async def put_user_data(event: dict):
     user_handler = UserDataHandler(username=username, password=password, email=email, otp_handler=otp_handler)
     return await user_handler.put_user_data(mongo)
 
+@app.post("/user/putPref", response_model=dict)
+async def put_user_preferences(event: dict):
+    email, dates, countries = event.get('email'), event.get('dates'), event.get('countries')
+    user_handler = UserDataHandler(username="", password="", email=email, otp_handler=otp_handler)
+    return await user_handler.update_user_preferences(mongo, email, dates, countries)
+
+@app.post("/user/getPref", response_model=dict)
+async def get_user_preferences(event: dict):
+    email = event.get('email')
+    user_handler = UserDataHandler(username="", password="", email=email, otp_handler=otp_handler)
+    return await user_handler.get_user_preferences(mongo, email)
+
 
 @app.post("/getUserData", response_model=dict)
 async def get_user_data(event: dict):
@@ -81,8 +93,12 @@ async def create_trip(event: dict):
     return await trip_handler.create_trip(event)
 
 @app.post("/trips/update", response_model=dict)
-async def update_def(event: dict):
+async def update_trip(event: dict):
     return await trip_handler.update_trip(event)
+
+@app.post("/trips/delete", response_model=dict)
+async def delete_trip(event: dict):
+    return await trip_handler.delete_trip(event)
 
 
 @app.post("/trips/join", response_model=dict)

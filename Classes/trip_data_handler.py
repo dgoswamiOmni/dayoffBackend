@@ -159,9 +159,10 @@ class TripDataHandler:
                 query['start_date'] = {'$gte': start_date, '$lte': end_date}
                 query['end_date'] = {'$gte': start_date, '$lte': end_date}
 
-            # TODO: handle getting trips when an array is passed to location and start_date and end_date
+            # TODO: add in functionality to also handle an array of locations and array of start date and end dates
             # Fetch trips from the database based on the query
-            cursor = self.db.trip.find(query)
+            # remove the oid from results as its unneeded
+            cursor = self.db.trip.find(query, {'_id': 0})
 
             # parse data so its more readable
             def parse_json(data):
@@ -185,5 +186,11 @@ class TripDataHandler:
             return {'statusCode': 500, 'body': json.dumps({'message': 'Internal Server Error'})}
 
     async def update_trip(self, event: dict):
-        #TODO: update the trip in the database
+        # TODO: update the trip in the database
+        # event will have the keys: tripid, numpeople, description
+        return None
+
+    async def delete_trip(self, event: dict):
+        # TODO: remove trip from the db
+        # event will have the keys: tripid
         return None

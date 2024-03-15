@@ -41,3 +41,25 @@ def test_filter_trips_joinedtrips():
     print(len(json.loads(response.json()['body'])['trips']))
 
     assert response.status_code == 200
+
+def test_filter_trips_location():
+    # TEST: getting trips based on location only
+    response = client.post(url="/trips/filter", json={
+        'location': {'code': 'CA', 'name': 'Canada'},
+    })
+    trips = json.loads(response.json()['body'])['trips']
+
+    for trip in trips:
+        print(trip.get('location'))
+
+
+def test_filtertrip_multilocations():
+    # TEST: getting trips when passed an array of locations
+    response = client.post(url="/trips/filter", json={
+        'location': [{'code': 'CA', 'name': 'Canada'},
+                     {'code': 'AU', 'name': 'Australia'}],
+    })
+    trips = json.loads(response.json()['body'])['trips']
+
+    print(trips)
+    print(len(trips))
