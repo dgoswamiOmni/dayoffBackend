@@ -53,8 +53,8 @@ async def login_user(event: dict):
 
 @app.post("/logout", response_model=dict)
 async def logout_user(event: dict):
-    username, token = event.get('username'), event.get('token')
-    user_handler = UserDataHandler(username=username, password="", email="")
+    email, token = event.get('email'), event.get('token')
+    user_handler = UserDataHandler(username="", password="", email=email, otp_handler=otp_handler)
     return await user_handler.logout_user(mongo, token)
 
 
@@ -63,6 +63,24 @@ async def put_user_data(event: dict):
     username, email, password = event.get('username'), event.get('email'), event.get('password')
     user_handler = UserDataHandler(username=username, password=password, email=email, otp_handler=otp_handler)
     return await user_handler.put_user_data(mongo)
+
+@app.post("/user/putExtra", response_model=dict)
+async def put_extra_data(event: dict):
+    print("putting extra data", event)
+    email, photo, residence, job = event.get('email'), event.get('photo_data'), event.get('country'), event.get('job')
+    user_handler = UserDataHandler(username="", password="", email=email, otp_handler=otp_handler)
+    if not email:
+        # if no email passed then return error
+        return {"statusCode": 400, "error": "no email passed"}
+    # upload non-null data to the db
+    if photo:
+        await user_handler.put_profile_picture(mongo, email, photo)
+    if residence:
+        await user_handler.put_residence(mongo, residence)
+    if job:
+        await user_handler.put_job(mongo, job)
+    # if data uploaded successfully then return a valid status code
+    return {'statusCode': 200}
 
 @app.post("/user/putPref", response_model=dict)
 async def put_user_preferences(event: dict):
@@ -81,7 +99,7 @@ async def get_user_preferences(event: dict):
 async def get_user_data(event: dict):
     try:
         email = event.get('email')
-        user_handler = UserDataHandler(username="", password="", email=email)
+        user_handler = UserDataHandler(username="", password="", email=email, otp_handler=otp_handler)
         return await user_handler.get_user_data(mongo)
     except HTTPException as e:
         # If it's an HTTPException, return a detailed error response
@@ -120,21 +138,27 @@ async def send_trip_invitation(event: dict):
 async def filter_and_sort_trips(event: dict):
     return await trip_handler.filter_and_sort_trips(event)
 
+@app.post("/trips/details", response_model=dict)
+async def get_trip_info(event: dict):
+    return await trip_handler.get_trip_details(event)
+
 
 @app.post("/messaging/send", response_model=dict)
 async def send_message_to_room(event: dict):
     messaging_handler = MessagingRoom(db=mongo, room_id=None, trip_id=None)
-    # get room id from trip id
-    event['room_id'] = messaging_handler.get_room_id(event.get('trip_id'))
     return await messaging_handler.send_message(event)
 
 
 @app.post("/messaging/retrieve", response_model=dict)
 async def retrieve_messages_from_room(event: dict):
     messaging_handler = MessagingRoom(db=mongo, room_id=None, trip_id=None)
-    room_id = messaging_handler.get_room_id(event.get('trip_id'))
-    return await messaging_handler.get_messages(room_id)
+    return await messaging_handler.get_messages(event.get('trip_id'))
 
+
+@app.post("/send-otp", response_model=dict)
+async def send_otp_message(event: dict):
+    email, username = event.get('email'), event.get('user_name')
+    return otp_handler.send_otp_sms(email, username)
 
 @app.post("/validate-otp", response_model=dict)
 async def validate_otp_message(username: str, otp: str = Query(..., min_length=6, max_length=6)):
@@ -145,4 +169,4 @@ if __name__ == "__main__":
     import uvicorn
 
     # 100.88.29.71
-    uvicorn.run(app, host="100.88.28.154", port=8090)
+    uvicorn.run(app, host="100.88.29.154", port=8090)

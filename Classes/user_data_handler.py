@@ -223,6 +223,9 @@ class UserDataHandler:
                 "email_id": self.email,
                 "password_hash": pbkdf2_sha256.hash(self.password),
             }
+
+            # TODO: check if a user with the same email id exists already -> if so then return an error status
+
             result = await db.user.insert_one(user_data)
             # Create a new document for user preferences
             user_preferences = {
@@ -273,6 +276,8 @@ class UserDataHandler:
             )
             return {"message": "User preferences updated successfully"}
         except Exception as e:
+            # TODO: if no record for users preferences exists yet then add a new one
+
             # Log the exception
             print(f"Exception in update_user_preferences: {str(e)}")
             return {'statusCode': 500, 'body': json.dumps({'message': 'Internal Server Error'})}
@@ -280,7 +285,7 @@ class UserDataHandler:
     async def get_user_data(self, db):
         try:
             # Retrieve user data based on username
-            user_data = await db.user.find_one({"user_name": self.username})
+            user_data = await db.user.find_one({"email_id": self.email})
 
             if user_data:
                 return {
@@ -312,6 +317,14 @@ class UserDataHandler:
             # Log the exception
             print(f"Exception in put_profile_picture: {str(e)}")
             return {"statusCode": 500, "body": json.dumps({'message': 'Internal Server Error'})}
+
+    async def put_residence(self, db, residence):
+        # TODO: function to upload text country of residence to user record
+        pass
+
+    async def put_job(self, db, job):
+        # TODO: upload text job to user record
+        pass
 
 # Example usage:
 # user_handler = UserDataHandler(username="john_doe", password="password123", email="john_doe@example.com")
