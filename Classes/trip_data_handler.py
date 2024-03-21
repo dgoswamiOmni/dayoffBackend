@@ -26,17 +26,14 @@ class TripDataHandler:
                 # 'time': body.get('time'),
                 'location': event.get('location'),
                 'description': event.get('description'),
-                'participants': [event.get('creator_email')],
-                # add in max people to trip data
-                'max_people': event.get('participants'),
+                'participants': [0 for _ in range(event.get('participants'))],
                 'trip_id': ''.join([str(random.randint(0, 9)) for _ in range(10)]),
                 'created_at': current_time  # Include the time and date of creation
             }
+            trip_details['participants'][0] = event.get('creator_email')
 
             result = await self.db.trip.insert_one(trip_details)
 
-            # README: unsure if room id is needed? as trip id is already unique so it could be used to identify unique rooms as well
-            # README: participants in messaging room will just be a copy of the ones in trip document so unsure if needed?
             room_id = ''.join([str(random.randint(0, 9)) for _ in range(10)])
             messaging_room = MessagingRoom(db=self.db, room_id=room_id, trip_id=trip_details['trip_id'],
                                            participants=[{trip_details.get('creator_email'): 'Name'}])
@@ -74,8 +71,6 @@ class TripDataHandler:
                 {"trip_id": trip_id},
                 {'$addToSet': {'participants': email}}
             )
-            # TODO: also add in a joined message to the messaging room -> sender=email, message='', joined=true
-
 
             return {'statusCode': 200, 'body': json.dumps({'message': 'Joined trip successfully'})}
 
@@ -101,13 +96,10 @@ class TripDataHandler:
             await self.db.trip.update_one({"trip_id": trip_id}, {'$pull': {'participants': email}})
 
             # Remove the user from the messaging room participants
-            # TODO: method doesnt remove the email from message room participants
             await self.db.messaging_room.update_one(
                 {"trip_id": trip_id},
                 {'$pull': {'participants': email}}
             )
-            # TODO: also add in a left message to the messaging room -> sender=email, message='', left=true
-
 
             return {'statusCode': 200, 'body': json.dumps({'message': 'Left trip successfully'})}
         except Exception as e:
@@ -168,7 +160,6 @@ class TripDataHandler:
                 query['end_date'] = {'$gte': start_date, '$lte': end_date}
 
             # TODO: add in functionality to also handle an array of locations and array of start date and end dates
-            # TODO: only return open trips -> ones where the number of non-null participants < max_people
             # Fetch trips from the database based on the query
             # remove the oid from results as its unneeded
             cursor = self.db.trip.find(query, {'_id': 0})
@@ -194,24 +185,12 @@ class TripDataHandler:
             print("error", e)
             return {'statusCode': 500, 'body': json.dumps({'message': 'Internal Server Error'})}
 
-    def update_trip(self, event: dict):
+    async def update_trip(self, event: dict):
         # TODO: update the trip in the database
         # event will have the keys: tripid, numpeople, description
         return None
 
-    def delete_trip(self, event: dict):
+    async def delete_trip(self, event: dict):
         # TODO: remove trip from the db
-        # event will have the keys: tripid, numpeople
-        # shouldnt allow deletion if theres >1 num people
+        # event will have the keys: tripid
         return None
-
-    async def get_trip_details(self, event: dict):
-        # TODO: return trip details from db -> for use in chat screen and group info screen
-        # event will only have tripid, and user email
-        # verify that the data should be returned only if the user email is in list of participants, otherwise dont return
-        # return the details of the trip record
-        query = {}
-        query['trip_id'] = event.get('trip_id')
-        query['participants'] = {"$in": [event.get('user_email')]}
-
-        return await self.db.trip.find_one(query, {'_id': 0})
