@@ -7,16 +7,16 @@ import boto3
 
 
 class OtpHandler:
-    def __init__(self, otp_collection):
-        self.otp_collection = otp_collection
+    def __init__(self, db):
+        self.otp_collection = db.otp_collection
         self.sns_client = boto3.client('sns', region_name=os.environ.get('AWS_REGION'))
 
-    def send_otp_sms(self, email, username):
+    async def send_otp_sms(self, email, username):
         generated_otp = str(random.randint(100000, 999999))
         expiration_time = int(time.time()) + 300  # OTP expires in 5 minutes
 
         # Store OTP and expiration time in MongoDB
-        self.otp_collection.update_one(
+        await self.otp_collection.update_one(
             {'email': email},
             {'$set': {'otp': generated_otp, 'expiration_time': expiration_time}},
             upsert=True
@@ -31,8 +31,8 @@ class OtpHandler:
 
         return {"message": "OTP sent successfully!"}
 
-    def validate_otp_message(self, username, otp_from_user):
-        stored_data = self.otp_collection.find_one({'username': username})
+    async def validate_otp_message(self, email, otp_from_user):
+        stored_data = await self.otp_collection.find_one({'email': email})
 
         if not stored_data:
             return {'statusCode': 400, 'body': json.dumps('No OTP found for the provided username')}

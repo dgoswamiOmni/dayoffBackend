@@ -194,61 +194,61 @@ class TripDataHandler:
     #         print("error", e)
     #         return {'statusCode': 500, 'body': json.dumps({'message': 'Internal Server Error'})}
     async def filter_and_sort_trips(self, event):
-    try:
-        # Get query parameters from the event
-        creator_email = event.get('creator_email')
-        user_email = event.get('user_email')
-        locations = event.get('locations', [])  # Assuming locations is a list of dictionaries
-        dates = event.get('dates', [])  # Assuming dates is a list of lists containing start and end dates
+        try:
+            # Get query parameters from the event
+            creator_email = event.get('creator_email')
+            user_email = event.get('user_email')
+            locations = event.get('locations', [])  # Assuming locations is a list of dictionaries
+            dates = event.get('dates', [])  # Assuming dates is a list of lists containing start and end dates
 
-        # Define a base query
-        query = {}
+            # Define a base query
+            query = {}
 
-        # Add filters based on user preferences
+            # Add filters based on user preferences
 
-        # Used to get the user's created trips
-        if creator_email:
-            query['creator_email'] = creator_email
+            # Used to get the user's created trips
+            if creator_email:
+                query['creator_email'] = creator_email
 
-        # Used to get any trips that the user has joined
-        if user_email:
-            query['participants'] = {"$in": [user_email]}
+            # Used to get any trips that the user has joined
+            if user_email:
+                query['participants'] = {"$in": [user_email]}
 
-        # Adding location and date filters
-        if locations:
-            query['location'] = {"$in": locations}
+            # Adding location and date filters
+            if locations:
+                query['location'] = {"$in": locations}
 
-        if dates:
-            date_query = {"$or": []}
-            for date_range in dates:
-                start_date, end_date = date_range
-                date_query["$or"].append({"start_date": {"$gte": start_date, "$lte": end_date}})
-                date_query["$or"].append({"end_date": {"$gte": start_date, "$lte": end_date}})
-            query["$and"] = [date_query]
+            if dates:
+                date_query = {"$or": []}
+                for date_range in dates:
+                    start_date, end_date = date_range
+                    date_query["$or"].append({"start_date": {"$gte": start_date, "$lte": end_date}})
+                    date_query["$or"].append({"end_date": {"$gte": start_date, "$lte": end_date}})
+                query["$and"] = [date_query]
 
-        # Fetch trips from the database based on the query
-        cursor = self.db.trip.find(query)
+            # Fetch trips from the database based on the query
+            cursor = self.db.trip.find(query)
 
-        # Parse data so it's more readable
-        def parse_json(data):
-            return json.loads(json_util.dumps(data))
+            # Parse data so it's more readable
+            def parse_json(data):
+                return json.loads(json_util.dumps(data))
 
-        # .find() returns a cursor so async iterate through to get every document
-        trips = []
-        async for doc in cursor:
-            trips.append(parse_json(doc))
+            # .find() returns a cursor so async iterate through to get every document
+            trips = []
+            async for doc in cursor:
+                trips.append(parse_json(doc))
 
-        # Sort trips based on a specific criterion (e.g., date)
-        sorted_trips = sorted(trips, key=lambda x: x.get('start_date', ''))
+            # Sort trips based on a specific criterion (e.g., date)
+            sorted_trips = sorted(trips, key=lambda x: x.get('start_date', ''))
 
-        # Return the filtered and sorted trips
-        return {
-            'statusCode': 200,
-            'body': json.dumps({'message': 'Trips filtered and sorted successfully', 'trips': sorted_trips})
-        }
-    except Exception as e:
-        print("error", e)
-        return {'statusCode': 500, 'body': json.dumps({'message': 'Internal Server Error'})}
+            # Return the filtered and sorted trips
+            return {
+                'statusCode': 200,
+                'body': json.dumps({'message': 'Trips filtered and sorted successfully', 'trips': sorted_trips})
+            }
+        except Exception as e:
+            print("error", e)
+            return {'statusCode': 500, 'body': json.dumps({'message': 'Internal Server Error'})}
 
 
     def update_trip(self, event: dict):

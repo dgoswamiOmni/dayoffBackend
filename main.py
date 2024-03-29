@@ -158,15 +158,17 @@ async def retrieve_messages_from_room(event: dict):
 @app.post("/send-otp", response_model=dict)
 async def send_otp_message(event: dict):
     email, username = event.get('email'), event.get('user_name')
-    return otp_handler.send_otp_sms(email, username)
+    return await otp_handler.send_otp_sms(email, username)
 
 @app.post("/validate-otp", response_model=dict)
-async def validate_otp_message(username: str, otp: str = Query(..., min_length=6, max_length=6)):
-    return otp_handler.validate_otp_message(username, otp)
+async def validate_otp_message(event: dict):
+    email = event.get('email')
+    otp = event.get('otp')
+    return await otp_handler.validate_otp_message(email, otp)
 
 
 if __name__ == "__main__":
     import uvicorn
 
     # 100.88.29.71
-    uvicorn.run(app, host="100.88.29.154", port=8090)
+    uvicorn.run(app, host="100.88.28.64", port=8090)
