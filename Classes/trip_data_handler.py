@@ -215,8 +215,9 @@ class TripDataHandler:
                 query['participants'] = {"$in": [user_email]}
 
             # Adding location and date filters
+            query["$or"] = []
             if locations:
-                query['location'] = {"$in": locations}
+                query["$or"].append({"location": {"$in": locations}})
 
             if dates:
                 date_query = {"$or": []}
@@ -224,7 +225,10 @@ class TripDataHandler:
                     start_date, end_date = date_range
                     date_query["$or"].append({"start_date": {"$gte": start_date, "$lte": end_date}})
                     date_query["$or"].append({"end_date": {"$gte": start_date, "$lte": end_date}})
-                query["$and"] = [date_query]
+                query["$or"].append(date_query)
+
+            if not query["$or"]:
+                del query["$or"]
 
             # Fetch trips from the database based on the query
             cursor = self.db.trip.find(query)
