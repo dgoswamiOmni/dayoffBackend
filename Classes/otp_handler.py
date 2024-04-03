@@ -25,8 +25,9 @@ class OtpHandler:
         # Send OTP via SNS
         message = f'Hello {username}, your OTP is: {generated_otp}'
         self.sns_client.publish(
-            Email=email,
-            Message=message
+            TopicArn='Your Tpoic Arn',
+            Message=message,
+            Subject='OTP Verification'
         )
 
         return {"message": "OTP sent successfully!"}
