@@ -45,7 +45,7 @@ class TripDataHandler:
             await self.db.messaging_room.insert_one(messaging_room.to_dict())
 
             return {'statusCode': 200, 'body': json.dumps(
-                {'message': 'Trip and messaging room created successfully', 'trip_id': str(result.inserted_id),
+                {'message': 'Trip and messaging room created successfully', 'trip_id': trip_details['trip_id'],
                  'room_id': room_id})}
         except Exception as e:
             print(e)
