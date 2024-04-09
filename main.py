@@ -7,7 +7,7 @@ from Classes.messaging_room_handler import MessagingRoom
 from Classes.otp_handler import OtpHandler
 from Utils.mongo_utils import MongoUtils
 
-app = FastAPI()
+app = FastAPI(title="DayOff APIs")
 handler = Mangum(app)
 
 # Enable CORS (Cross-Origin Resource Sharing) for all origins
