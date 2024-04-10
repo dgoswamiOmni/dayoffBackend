@@ -543,16 +543,50 @@ class TripDataHandler:
             print("Error:", e)
             return {'statusCode': 500, 'body': json.dumps({'message': 'Internal Server Error'})}
 
-    def update_trip(self, event: dict):
-        # TODO: update the trip in the database
-        # event will have the keys: tripid, numpeople, description
-        return None
+    async def update_trip(self, event: dict):
+        try:
+            # Extract trip ID and other details from the event
+            trip_id = event.get('trip_id')
+            num_people = event.get('num_people')
+            description = event.get('description')
 
-    def delete_trip(self, event: dict):
-        # TODO: remove trip from the db
-        # event will have the keys: tripid, numpeople
-        # shouldnt allow deletion if theres >1 num people
-        return None
+            # Validate if trip_id is provided
+            if not trip_id:
+                return {'statusCode': 400, 'body': json.dumps({'message': 'Missing trip_id'})}
+
+            # Update the trip details in the database
+            result = await self.db.trip.update_one(
+                {"trip_id": trip_id},
+                {'$set': {'num_people': num_people, 'description': description}}
+            )
+
+            if result.matched_count > 0 and result.modified_count > 0:
+                return {'statusCode': 200, 'body': json.dumps({'message': 'Trip updated successfully'})}
+            else:
+                return {'statusCode': 404, 'body': json.dumps({'message': 'Trip not found'})}
+        except Exception as e:
+            return {'statusCode': 500, 'body': json.dumps({'message': str(e)})}  # Return 500 for internal server error
+
+
+    async def delete_trip(self, event: dict):
+        try:
+            # Extract trip ID from the event
+            trip_id = event.get('trip_id')
+
+            # Validate if trip_id is provided
+            if not trip_id:
+                return {'statusCode': 400, 'body': json.dumps({'message': 'Missing trip_id'})}
+
+            # Delete the trip from the database
+            result = await self.db.trip.delete_one({"trip_id": trip_id})
+
+            if result.deleted_count > 0:
+                return {'statusCode': 200, 'body': json.dumps({'message': 'Trip deleted successfully'})}
+            else:
+                return {'statusCode': 404, 'body': json.dumps({'message': 'Trip not found'})}
+        except Exception as e:
+            return {'statusCode': 500, 'body': json.dumps({'message': str(e)})}  # Return 500 for internal server error
+
 
     # async def get_trip_details(self, event: dict):
     #     # TODO: return trip details from db -> for use in chat screen and group info screen
