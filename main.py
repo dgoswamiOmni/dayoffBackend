@@ -7,7 +7,7 @@ from Classes.messaging_room_handler import MessagingRoom
 from Classes.otp_handler import OtpHandler
 from Utils.mongo_utils import MongoUtils
 
-app = FastAPI()
+app = FastAPI(title="DayOff APIs")
 handler = Mangum(app)
 
 # Enable CORS (Cross-Origin Resource Sharing) for all origins
@@ -157,7 +157,10 @@ async def retrieve_messages_from_room(event: dict):
 
 @app.post("/send-otp", response_model=dict)
 async def send_otp_message(event: dict):
-    email, username = event.get('email'), event.get('user_name')
+    email = event.get('email')
+    username = event.get('username')
+    if not email or not username:
+        raise HTTPException(status_code=400, detail="Email and username are required")
     return await otp_handler.send_otp_sms(email, username)
 
 @app.post("/validate-otp", response_model=dict)
