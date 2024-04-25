@@ -522,6 +522,11 @@ class TripDataHandler:
                 location_date_queries.append(location_date_query)
 
             query['$or'] = location_date_queries
+            if not query['creator_email']:
+                del query['creator_email']
+            if not query['$or']:
+                del query['$or']
+
 
             # Fetch trips from the database based on the query
             cursor = self.db.trip.find(query)
