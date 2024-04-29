@@ -306,23 +306,35 @@ class UserDataHandler:
             print(f"Exception in get_user_preferences: {str(e)}")
             return {'statusCode': 500, 'body': json.dumps({'message': 'Internal Server Error'})}
 
-    async def update_user_preferences(self, db, email, preferred_dates=None, preferred_countries=None):
+        async def update_user_preferences(self, db, email, preferred_dates=None, preferred_countries=None):
         try:
-            # Update user preferences based on email
-            await db.user_preferences.update_one(
-                {"email_id": email},
-                {"$set": {
+            # Check if user preferences record exists
+            existing_record = await db.user_preferences.find_one({"email_id": email})
+
+            if existing_record:
+                # Update user preferences
+                await db.user_preferences.update_one(
+                    {"email_id": email},
+                    {"$set": {
+                        "preferred_dates": preferred_dates if preferred_dates else [],
+                        "preferred_countries": preferred_countries if preferred_countries else [],
+                    }}
+                )
+                return {"message": "User preferences updated successfully"}
+            else:
+                # Insert new user preferences record
+                await db.user_preferences.insert_one({
+                    "email_id": email,
                     "preferred_dates": preferred_dates if preferred_dates else [],
                     "preferred_countries": preferred_countries if preferred_countries else [],
-                }}
-            )
-            return {"message": "User preferences updated successfully"}
-        except Exception as e:
-            # TODO: if no record for users preferences exists yet then add a new one
+                })
+                return {"message": "New user preferences record created successfully"}
 
+        except Exception as e:
             # Log the exception
             print(f"Exception in update_user_preferences: {str(e)}")
             return {'statusCode': 500, 'body': json.dumps({'message': 'Internal Server Error'})}
+
 
     async def get_user_data(self, db):
         try:
