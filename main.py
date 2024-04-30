@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query,UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
 from Classes.user_data_handler import UserDataHandler
