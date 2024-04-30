@@ -143,7 +143,7 @@ import json
 from passlib.hash import pbkdf2_sha256
 from Utils.auth_utils import generate_jwt_token, log_login, log_logout, validate_jwt_token
 from bson import ObjectId
-from fastapi import HTTPException
+from fastapi import HTTPException,File, UploadFile
 from datetime import datetime
 from Utils.s3_utils import upload_to_s3
 
@@ -371,21 +371,37 @@ class UserDataHandler:
     #         # Log the exception
     #         print(f"Exception in put_profile_picture: {str(e)}")
     #         return {"statusCode": 500, "body": json.dumps({'message': 'Internal Server Error'})}
-    async def put_profile_picture(self, db, user_id, image_data):
-        try:
-            # Assuming image_data is a file-like object or a file path
-            # If image_data is a file path, open the file in binary mode
-            if isinstance(image_data, str):  # Check if image_data is a file path
-                with open(image_data, 'rb') as file:
-                    image_data = file.read()
+    # async def put_profile_picture(self, db, user_id, image_data):
+    #     try:
+    #         # Assuming image_data is a file-like object or a file path
+    #         # If image_data is a file path, open the file in binary mode
+    #         if isinstance(image_data, str):  # Check if image_data is a file path
+    #             with open(image_data, 'rb') as file:
+    #                 image_data = file.read()
 
+    #         # Upload image to S3 using the utility function
+    #         bucket_name = os.environ.get('S3_BUCKET_NAME')
+    #         file_name = f"{user_id}.png"  # Assuming the image is in PNG format
+    #         s3_url = upload_to_s3(bucket_name, file_name, image_data)
+
+    #         # Update user data in the database with the S3 URL
+    #         await db.user.update_one({"user_name": self.username}, {"$set": {"profile_picture": s3_url}})
+
+    #         return {"message": "Profile picture uploaded successfully"}
+    #     except Exception as e:
+    #         # Log the exception
+    #         print(f"Exception in put_profile_picture: {str(e)}")
+    #         return {"statusCode": 500, "body": json.dumps({'message': 'Internal Server Error'})}
+    async def put_profile_picture(self, db, user_id, file: UploadFile = File(...)):
+        try:
             # Upload image to S3 using the utility function
-            bucket_name = os.environ.get('S3_BUCKET_NAME')
-            file_name = f"{user_id}.png"  # Assuming the image is in PNG format
-            s3_url = upload_to_s3(bucket_name, file_name, image_data)
+            bucket_name = "hello-blog"
+            file_name = f"{user_id}_profile_picture.png"
+            # s3_url = upload_to_s3(bucket_name, file_name, image_data)
+            s3_url = upload_to_s3(bucket_name, file_name, file.file)
 
             # Update user data in the database with the S3 URL
-            await db.user.update_one({"user_name": self.username}, {"$set": {"profile_picture": s3_url}})
+            await db.user.update_one({"email_id": self.email}, {"$set": {"profile_picture": s3_url}})
 
             return {"message": "Profile picture uploaded successfully"}
         except Exception as e:
@@ -394,12 +410,25 @@ class UserDataHandler:
             return {"statusCode": 500, "body": json.dumps({'message': 'Internal Server Error'})}
 
     async def put_residence(self, db, residence):
-        # TODO: function to upload text country of residence to user record
-        pass
+        try:
+            # Update user data in the database with the residence
+            await db.user.update_one({"email_id": self.email}, {"$set": {"residence": residence}})
+            return {"message": "Residence updated successfully"}
+        except Exception as e:
+            # Log the exception
+            print(f"Exception in put_residence: {str(e)}")
+            return {"statusCode": 500, "body": json.dumps({'message': 'Internal Server Error'})}
 
     async def put_job(self, db, job):
-        # TODO: upload text job to user record
-        pass
+        try:
+            # Update user data in the database with the job
+            await db.user.update_one({"email_id": self.email}, {"$set": {"job": job}})
+            return {"message": "Job updated successfully"}
+        except Exception as e:
+            # Log the exception
+            print(f"Exception in put_job: {str(e)}")
+            return {"statusCode": 500, "body": json.dumps({'message': 'Internal Server Error'})}
+
 
 # Example usage:
 # user_handler = UserDataHandler(username="john_doe", password="password123", email="john_doe@example.com")
