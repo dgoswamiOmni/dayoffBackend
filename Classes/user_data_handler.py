@@ -306,7 +306,7 @@ class UserDataHandler:
             print(f"Exception in get_user_preferences: {str(e)}")
             return {'statusCode': 500, 'body': json.dumps({'message': 'Internal Server Error'})}
 
-        async def update_user_preferences(self, db, email, preferred_dates=None, preferred_countries=None):
+    async def update_user_preferences(self, db, email, preferred_dates=None, preferred_countries=None):
         try:
             # Check if user preferences record exists
             existing_record = await db.user_preferences.find_one({"email_id": email})
