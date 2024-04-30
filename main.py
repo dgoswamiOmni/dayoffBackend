@@ -64,23 +64,43 @@ async def put_user_data(event: dict):
     user_handler = UserDataHandler(username=username, password=password, email=email, otp_handler=otp_handler)
     return await user_handler.put_user_data(mongo)
 
+# @app.post("/user/putExtra", response_model=dict)
+# async def put_extra_data(event: dict):
+#     print("putting extra data", event)
+#     email, photo, residence, job = event.get('email'), event.get('photo_data'), event.get('country'), event.get('job')
+#     user_handler = UserDataHandler(username="", password="", email=email, otp_handler=otp_handler)
+#     if not email:
+#         # if no email passed then return error
+#         return {"statusCode": 400, "error": "no email passed"}
+#     # upload non-null data to the db
+#     if photo:
+#         await user_handler.put_profile_picture(mongo, email, photo)
+#     if residence:
+#         await user_handler.put_residence(mongo, residence)
+#     if job:
+#         await user_handler.put_job(mongo, job)
+#     # if data uploaded successfully then return a valid status code
+#     return {'statusCode': 200}
+
 @app.post("/user/putExtra", response_model=dict)
-async def put_extra_data(event: dict):
-    print("putting extra data", event)
-    email, photo, residence, job = event.get('email'), event.get('photo_data'), event.get('country'), event.get('job')
-    user_handler = UserDataHandler(username="", password="", email=email, otp_handler=otp_handler)
-    if not email:
-        # if no email passed then return error
-        return {"statusCode": 400, "error": "no email passed"}
-    # upload non-null data to the db
-    if photo:
-        await user_handler.put_profile_picture(mongo, email, photo)
-    if residence:
-        await user_handler.put_residence(mongo, residence)
-    if job:
-        await user_handler.put_job(mongo, job)
-    # if data uploaded successfully then return a valid status code
-    return {'statusCode': 200}
+async def put_extra_data(email: str, residence: str, job: str, photo: UploadFile = File(...)):
+    try:
+        user_handler = UserDataHandler(username="", password="", email=email, otp_handler=otp_handler)
+        if not email:
+            # if no email passed then return error
+            return {"statusCode": 400, "error": "no email passed"}
+        # upload non-null data to the db
+        if photo:
+            await user_handler.put_profile_picture(mongo, email, photo)
+        if residence:
+            await user_handler.put_residence(mongo, residence)
+        if job:
+            await user_handler.put_job(mongo, job)
+        # if data uploaded successfully then return a valid status code
+        return {'statusCode': 200}
+    except Exception as e:
+        print(f"Exception in put_extra_data: {str(e)}")
+        return {"statusCode": 500, "body": json.dumps({'message': 'Internal Server Error'})}
 
 @app.post("/user/putPref", response_model=dict)
 async def put_user_preferences(event: dict):
