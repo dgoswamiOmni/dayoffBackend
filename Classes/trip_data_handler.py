@@ -358,7 +358,23 @@ class TripDataHandler:
                 {"trip_id": trip_id},
                 {'$addToSet': {'participants': email}}
             )
-            # TODO: also add in a joined message to the messaging room -> sender=email, message='', joined=true
+
+            # Get the current number of participants (excluding the creator)
+            current_participants = len(trip.get('participants', [])) + 1  # Add 1 for the creator
+
+            # Update the max_people field in the trip document
+            await self.db.trip.update_one({"trip_id": trip_id}, {'$set': {'max_people': current_participants}})
+
+            # Add a joined message to the messaging room
+            joined_message = {
+                'sender': email,
+                'message': 'Joined Trip Successfully',
+                'joined': True
+            }
+            await self.db.messaging_room.update_one(
+                {"trip_id": trip_id},
+                {'$addToSet': {'messages': joined_message}}
+            )
 
             return {'statusCode': 200, 'body': json.dumps({'message': 'Joined trip successfully'})}
 
