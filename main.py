@@ -83,7 +83,7 @@ async def put_user_data(event: dict):
 #     return {'statusCode': 200}
 
 @app.post("/user/putExtra", response_model=dict)
-async def put_extra_data(email: str, residence: str, job: str, photo: UploadFile = File(...)):
+async def put_extra_data(email: str, country: str, job: str, photo: UploadFile = File(...)):
     try:
         user_handler = UserDataHandler(username="", password="", email=email, otp_handler=otp_handler)
         if not email:
@@ -92,8 +92,8 @@ async def put_extra_data(email: str, residence: str, job: str, photo: UploadFile
         # upload non-null data to the db
         if photo:
             await user_handler.put_profile_picture(mongo, email, photo)
-        if residence:
-            await user_handler.put_residence(mongo, residence)
+        if country:
+            await user_handler.put_residence(mongo, country)
         if job:
             await user_handler.put_job(mongo, job)
         # if data uploaded successfully then return a valid status code
