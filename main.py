@@ -125,6 +125,11 @@ async def get_user_data(event: dict):
         # If it's an HTTPException, return a detailed error response
         return {"statusCode": e.status_code, "error": str(e.detail)}
 
+@app.post("/fetch_group_members", response_model=dict)
+async def fetch_group_members(trip_id: str = Query(..., description="ID of the trip")):
+    user_handler = UserDataHandler(email=" ", username="", password="", otp_handler=otp_handler)
+    return await user_handler.fetch_group_members(mongo,trip_id)
+
 
 @app.post("/trips/create", response_model=dict)
 async def create_trip(event: dict):
