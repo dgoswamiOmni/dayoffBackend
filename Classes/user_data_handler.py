@@ -429,6 +429,46 @@ class UserDataHandler:
             print(f"Exception in put_job: {str(e)}")
             return {"statusCode": 500, "body": json.dumps({'message': 'Internal Server Error'})}
 
+    async def fetch_group_members(self, db, trip_id: str):
+        try:
+            # Find the messaging room for the given trip ID
+            messaging_room = await db["messaging_room"].find_one({"trip_id": trip_id})
+            if messaging_room:
+                # Fetch participants with joined=true from messaging_room
+                messaging_room_joined = await db["messaging_room"].find_one(
+                    {"trip_id": trip_id, "messages.joined": True})
+                if messaging_room_joined:
+                    messages = messaging_room_joined.get("messages", [])
+                    print(messages)
+                    joined_emails = [message["sender"] for message in messages if
+                                     "joined" in message and message["joined"]]
+                    print(joined_emails)
+
+                    # Fetch user details for the joined emails
+                    group_members = []
+                    for email in joined_emails:
+                        user = await db["user"].find_one({"email_id": email})
+                        if user:
+                            # Extract required fields from user data
+                            user_data = {
+                                "user_name": user["user_name"],
+                                "email_id": user["email_id"],
+                                "profile_picture": user["profile_picture"],
+                                "job": user["job"],
+                                "residence": user["residence"]
+                            }
+                            group_members.append(user_data)
+
+                    return {"group_members": group_members}
+                else:
+                    return {"group_members": []}  # Return empty list if no participants with joined=true
+            else:
+                return {"group_members": []}  # Return empty list if no messaging room found for the trip ID
+        except Exception as e:
+            logging.error(f"An error occurred: {str(e)}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+
 
 # Example usage:
 # user_handler = UserDataHandler(username="john_doe", password="password123", email="john_doe@example.com")
