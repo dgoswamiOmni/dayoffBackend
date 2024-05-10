@@ -1,288 +1,15 @@
-# trip_data_handler.py
-# import random
-# import json
-# from bson import ObjectId, json_util
-# from fastapi import APIRouter, HTTPException, Depends
-# from fastapi.security import OAuth2AuthorizationCodeBearer
-# from Utils.auth_utils import validate_jwt_token
-# from Classes.messaging_room_handler import MessagingRoom
-# import datetime
 
-
-# # from auth_utils import db
-
-# class TripDataHandler:
-#     def __init__(self, db):
-#         self.db = db
-
-#     async def create_trip(self, event):
-#         try:
-#             current_time = datetime.datetime.utcnow().isoformat()
-
-#             trip_details = {
-#                 'creator_email': event.get('creator_email'),  # Use creator's email instead of username
-#                 'start_date': datetime.datetime.strptime(event.get('start_date'), '%a %b %d %Y %H:%M:%S %Z%z').strftime('%Y-%m-%d'),  # Include start date
-#                 'end_date': datetime.datetime.strptime(event.get('end_date'), '%a %b %d %Y %H:%M:%S %Z%z').strftime('%Y-%m-%d'),  # Include end date
-#                 # 'time': body.get('time'),
-#                 'location': event.get('location'),
-#                 'description': event.get('description'),
-#                 'participants': [event.get('creator_email')],
-#                 # add in max people to trip data
-#                 'max_people': event.get('participants'),
-#                 'trip_id': ''.join([str(random.randint(0, 9)) for _ in range(10)]),
-#                 'created_at': current_time  # Include the time and date of creation
-#             }
-
-#             result = await self.db.trip.insert_one(trip_details)
-
-#             # README: unsure if room id is needed? as trip id is already unique so it could be used to identify unique rooms as well
-#             # README: participants in messaging room will just be a copy of the ones in trip document so unsure if needed?
-#             room_id = ''.join([str(random.randint(0, 9)) for _ in range(10)])
-#             messaging_room = MessagingRoom(db=self.db, room_id=room_id, trip_id=trip_details['trip_id'],
-#                                            participants=[{trip_details.get('creator_email'): 'Name'}])
-
-#             # Save the messaging room details in the database
-#             await self.db.messaging_room.insert_one(messaging_room.to_dict())
-
-#             return {'statusCode': 200, 'body': json.dumps(
-#                 {'message': 'Trip and messaging room created successfully', 'trip_id': trip_details['trip_id'],
-#                  'room_id': room_id})}
-#         except Exception as e:
-#             print(e)
-#             return {'statusCode': 500, 'body': json.dumps({'message': 'Internal Server Error', 'Exception': str(e)})}
-
-#     async def join_trip(self, event):
-#         try:
-#             # Extract trip ID and username from the request
-#             trip_id = event.get('trip_id')
-#             email = event.get('email')
-
-#             # Validate the presence of required parameters
-#             if not (trip_id or email):
-#                 return {'statusCode': 400, 'body': json.dumps({'message': 'Missing required parameters'})}
-
-#             # Check if the trip exists
-#             trip = await self.db.trip.find_one({"trip_id": trip_id})
-#             if not trip:
-#                 return {'statusCode': 404, 'body': json.dumps({'message': 'Trip not found'})}
-
-#             # Add the username to the list of participants
-#             await self.db.trip.update_one({"trip_id": trip_id}, {'$addToSet': {'participants': email}})
-
-#             # Add the username to the messaging room participants
-#             await self.db.messaging_room.update_one(
-#                 {"trip_id": trip_id},
-#                 {'$addToSet': {'participants': email}}
-#             )
-#             # TODO: also add in a joined message to the messaging room -> sender=email, message='', joined=true
-
-
-#             return {'statusCode': 200, 'body': json.dumps({'message': 'Joined trip successfully'})}
-
-#         except Exception as e:
-#             return {'statusCode': 500, 'body': json.dumps({'message': 'Internal Server Error'})}
-
-#     async def leave_trip(self, event):
-#         try:
-#             # Extract trip ID and user ID from the request
-#             trip_id = event.get('trip_id')
-#             email = event.get('email')
-
-#             # Validate the presence of required parameters
-#             if not trip_id or not email:
-#                 return {'statusCode': 400, 'body': json.dumps({'message': 'Missing required parameters'})}
-
-#             # Check if the trip exists
-#             trip = await self.db.trip.find_one({"trip_id": trip_id})
-#             if not trip:
-#                 return {'statusCode': 404, 'body': json.dumps({'message': 'Trip not found'})}
-
-#             # Remove the user from the list of participants
-#             await self.db.trip.update_one({"trip_id": trip_id}, {'$pull': {'participants': email}})
-
-#             # Remove the user from the messaging room participants
-#             # TODO: method doesnt remove the email from message room participants
-#             await self.db.messaging_room.update_one(
-#                 {"trip_id": trip_id},
-#                 {'$pull': {'participants': email}}
-#             )
-#             # TODO: also add in a left message to the messaging room -> sender=email, message='', left=true
-
-
-#             return {'statusCode': 200, 'body': json.dumps({'message': 'Left trip successfully'})}
-#         except Exception as e:
-#             return {'statusCode': 500, 'body': json.dumps({'message': 'Internal Server Error'})}
-
-#     async def send_trip_invitation(self, event):
-#         try:
-#             token = event['headers'].get('Authorization', '').split('Bearer ')[-1]
-#             decoded_token = validate_jwt_token(token)
-
-#             if decoded_token:
-
-#                 body = json.loads(event['body'])
-#                 invited_user_id = body['invited_user_id']
-#                 trip_id = body['trip_id']
-
-#                 result = await self.db.trips.update_one(
-#                     {"trip_id": trip_id},
-#                     {'$addToSet': {'invitations': {'user_id': invited_user_id, 'status': 'pending'}}}
-#                 )
-
-#                 if result.matched_count > 0 and result.modified_count > 0:
-#                     return {'statusCode': 200, 'body': json.dumps({'message': 'Invitation sent successfully'})}
-#                 else:
-#                     return {'statusCode': 404, 'body': json.dumps({'message': 'Trip not found'})}
-#             else:
-#                 return {'statusCode': 401, 'body': json.dumps({'message': 'Invalid or expired token'})}
-#         except Exception as e:
-#             return {'statusCode': 500, 'body': json.dumps({'message': 'Internal Server Error'})}
-
-#     # async def filter_and_sort_trips(self, event):
-#     #     try:
-#     #         # Get query parameters from the event
-#     #         creator_email = event.get('creator_email')
-#     #         user_email = event.get('user_email')
-#     #         location = event.get('location')
-#     #         start_date = event.get('start_date')
-#     #         end_date = event.get('end_date')
-
-#     #         # Define a base query
-#     #         query = {}
-
-#     #         # Add filters based on user preferences
-
-#     #         # used to get the user's created trips
-#     #         if creator_email:
-#     #             query['creator_email'] = creator_email
-
-#     #         # used to get any trips that the user has joined
-#     #         if user_email:
-#     #             query['participants'] = {"$in": [user_email]}
-
-#     #         if location:
-#     #             query['location'] = location
-
-#     #         if start_date and end_date:
-#     #             query['start_date'] = {'$gte': start_date, '$lte': end_date}
-#     #             query['end_date'] = {'$gte': start_date, '$lte': end_date}
-
-#     #         # TODO: add in functionality to also handle an array of locations and array of start date and end dates
-#     #         # TODO: only return open trips -> ones where the number of non-null participants < max_people
-#     #         # Fetch trips from the database based on the query
-#     #         # remove the oid from results as its unneeded
-#     #         cursor = self.db.trip.find(query, {'_id': 0})
-
-#     #         # parse data so its more readable
-#     #         def parse_json(data):
-#     #             return json.loads(json_util.dumps(data))
-
-#     #         # .find() returns a cursor so async iterate through to get every document
-#     #         trips = []
-#     #         async for doc in cursor:
-#     #             trips.append(parse_json(doc))
-
-#     #         # Sort trips based on a specific criterion (e.g., date)
-#     #         sorted_trips = sorted(trips, key=lambda x: x.get('start_date', ''))
-
-#     #         # Return the filtered and sorted trips
-#     #         return {
-#     #             'statusCode': 200,
-#     #             'body': json.dumps({'message': 'Trips filtered and sorted successfully', 'trips': sorted_trips})
-#     #         }
-#     #     except Exception as e:
-#     #         print("error", e)
-#     #         return {'statusCode': 500, 'body': json.dumps({'message': 'Internal Server Error'})}
-#     async def filter_and_sort_trips(self, event):
-#         try:
-#             # Get query parameters from the event
-#             creator_email = event.get('creator_email')
-#             user_email = event.get('user_email')
-#             locations = event.get('locations', [])  # Assuming locations is a list of dictionaries
-#             dates = event.get('dates', [])  # Assuming dates is a list of lists containing start and end dates
-
-#             # Define a base query
-#             query = {}
-
-#             # Add filters based on user preferences
-
-#             # Used to get the user's created trips
-#             if creator_email:
-#                 query['creator_email'] = creator_email
-
-#             # Used to get any trips that the user has joined
-#             if user_email:
-#                 query['participants'] = {"$in": [user_email]}
-
-#             # Adding location and date filters
-#             query["$or"] = []
-#             if locations:
-#                 query["$or"].append({"location": {"$in": locations}})
-
-#             if dates:
-#                 date_query = {"$or": []}
-#                 for date_range in dates:
-#                     start_date, end_date = date_range
-#                     date_query["$or"].append({"start_date": {"$gte": start_date, "$lte": end_date}})
-#                     date_query["$or"].append({"end_date": {"$gte": start_date, "$lte": end_date}})
-#                 query["$or"].append(date_query)
-
-#             if not query["$or"]:
-#                 del query["$or"]
-
-#             # Fetch trips from the database based on the query
-#             cursor = self.db.trip.find(query)
-
-#             # Parse data so it's more readable
-#             def parse_json(data):
-#                 return json.loads(json_util.dumps(data))
-
-#             # .find() returns a cursor so async iterate through to get every document
-#             trips = []
-#             async for doc in cursor:
-#                 trips.append(parse_json(doc))
-
-#             # Sort trips based on a specific criterion (e.g., date)
-#             sorted_trips = sorted(trips, key=lambda x: x.get('start_date', ''))
-
-#             # Return the filtered and sorted trips
-#             return {
-#                 'statusCode': 200,
-#                 'body': json.dumps({'message': 'Trips filtered and sorted successfully', 'trips': sorted_trips})
-#             }
-#         except Exception as e:
-#             print("error", e)
-#             return {'statusCode': 500, 'body': json.dumps({'message': 'Internal Server Error'})}
-
-
-#     def update_trip(self, event: dict):
-#         # TODO: update the trip in the database
-#         # event will have the keys: tripid, numpeople, description
-#         return None
-
-#     def delete_trip(self, event: dict):
-#         # TODO: remove trip from the db
-#         # event will have the keys: tripid, numpeople
-#         # shouldnt allow deletion if theres >1 num people
-#         return None
-
-#     async def get_trip_details(self, event: dict):
-#         # TODO: return trip details from db -> for use in chat screen and group info screen
-#         # event will only have tripid, and user email
-#         # verify that the data should be returned only if the user email is in list of participants, otherwise dont return
-#         # return the details of the trip record
-#         query = {}
-#         query['trip_id'] = event.get('trip_id')
-#         query['participants'] = {"$in": [event.get('user_email')]}
-
-#         return await self.db.trip.find_one(query, {'_id': 0})
 import random
 import json
 from bson import ObjectId
-from Utils.auth_utils import validate_jwt_token
+from fastapi import HTTPException
 from Classes.messaging_room_handler import MessagingRoom
 import datetime
 import logging
+from Utils.mongo_utils import MongoUtils
+
+mongo_instance = MongoUtils()
+mongo = mongo_instance.connect_to_database()
 
 
 # from auth_utils import db
@@ -358,23 +85,20 @@ class TripDataHandler:
                 {"trip_id": trip_id},
                 {'$addToSet': {'participants': email}}
             )
+            await self.db.messaging_room.update_one(
+                {"trip_id": trip_id},
+                {'$push': {'messages': {'sender': email, 'message': 'Joined Trip Successfully', 'joined': True}}}
+            )
 
+            # Get the updated trip document
+            updated_trip = await self.db.trip.find_one({"trip_id": trip_id})
             # Get the current number of participants (excluding the creator)
-            current_participants = len(trip.get('participants', [])) + 1  # Add 1 for the creator
+            current_participants = len(updated_trip.get('participants', []))  # Add 1 for the creator
+            print("current_participants", current_participants)
 
             # Update the max_people field in the trip document
             await self.db.trip.update_one({"trip_id": trip_id}, {'$set': {'max_people': current_participants}})
 
-            # Add a joined message to the messaging room
-            joined_message = {
-                'sender': email,
-                'message': 'Joined Trip Successfully',
-                'joined': True
-            }
-            await self.db.messaging_room.update_one(
-                {"trip_id": trip_id},
-                {'$addToSet': {'messages': joined_message}}
-            )
 
             return {'statusCode': 200, 'body': json.dumps({'message': 'Joined trip successfully'})}
 
@@ -398,12 +122,6 @@ class TripDataHandler:
 
             # Remove the user from the list of participants
             await self.db.trip.update_one({"trip_id": trip_id}, {'$pull': {'participants': email}})
-            print(trip)
-
-            # Remove the user from the invited_user_email arrays in invitations
-            await self.db.trip.update_one({"trip_id": trip_id},
-                                          {'$pull': {'invitations.$[].invited_user_email': email}})
-            print(trip)
 
             # Remove the user from the messaging room participants
             await self.db.messaging_room.update_one(
@@ -417,91 +135,152 @@ class TripDataHandler:
                 {'$push': {'messages': {'sender': email, 'message': f'{email} left the messaging room', 'left': True}}}
             )
 
+            # Check if the leaving user is the creator
+            if email == trip['creator_email']:
+                # If the leaving user is the creator, decrement max_people by 1
+                new_max_people = max(0, trip.get('max_people', 0) - 1)
+            else:
+                # Get the updated trip document
+                updated_trip = await self.db.trip.find_one({"trip_id": trip_id})
+
+                # Check if 'invitations' field exists in the document
+                if 'invitations' in updated_trip:
+                    # Remove the user from the invited_user_email arrays in invitations
+                    await self.db.trip.update_one({"trip_id": trip_id},
+                                                  {'$pull': {'invitations.$[].invited_user_email': email}})
+
+                # Calculate the number of participants left
+                participants_left = len(updated_trip.get('participants', []))
+
+                # Update the max_people count by subtracting the number of participants left
+                new_max_people = max(0, trip.get('max_people', 0) - participants_left)
+
+            # Update the trip document with the new max_people count
+            await self.db.trip.update_one({"trip_id": trip_id}, {'$set': {'max_people': new_max_people}})
+
             return {'statusCode': 200, 'body': json.dumps({'message': 'Left trip successfully'})}
         except Exception as e:
+            logging.error(f"An error occurred: {str(e)}")  # Log the error
             return {'statusCode': 500, 'body': json.dumps({'message': 'Internal Server Error'})}
+
+
+    async def fetch_joined_invitees(self, db, trip_id: str):
+        try:
+            # Find the messaging room for the given trip ID
+            messaging_room = await db["messaging_room"].find_one({"trip_id": trip_id})
+            if messaging_room:
+                # Fetch participants with joined=true from messaging_room
+                messaging_room_joined = await db["messaging_room"].find_one(
+                    {"trip_id": trip_id, "messages.joined": True})
+                if messaging_room_joined:
+                    messages = messaging_room_joined.get("messages", [])
+                    last_joined_message = next(
+                        (
+                            message
+                            for message in reversed(messages)
+                            if "joined" in message and message["joined"]
+                        ),
+                        None,
+                    )
+                    print("last_joined_message", last_joined_message)
+                    # Fetch user details for users who have not left
+                    valid_emails = set()
+                    for message in messages:
+                        if "joined" in message and message["joined"]:
+                            valid_emails.add(message["sender"])
+                        if "left" in message and message["left"]:
+                            valid_emails.discard(message["sender"])
+
+                    return {"joined_emails": valid_emails}
+                else:
+                    return {"joined_emails": [], "message": "No participants have joined the messaging room"}
+            else:
+                return {"joined_emails": [],
+                        "message": "No messaging room found for the trip ID"}  # Return empty list if no messaging room found for the trip ID
+        except Exception as e:
+            logging.error(f"An error occurred: {str(e)}")
+            raise HTTPException(status_code=500, detail=str(e))
+
 
 
     async def send_trip_invitation(self, event):
         try:
-            token = event['headers'].get('Authorization', '').split('Bearer ')[-1]
-            decoded_token = validate_jwt_token(token)
+            # body = json.loads(event["body"])  # Parse the JSON body
+            invited_user_emails = [event.get("invited_user_emails", [])]
+            trip_id = event.get("trip_id")
 
-            if decoded_token:
-                body = json.loads(event["body"])  # Parse the JSON body
-                invited_user_emails = [body.get("invited_user_emails")]
-                trip_id = body.get("trip_id")
+            if not invited_user_emails or not trip_id:
+                return {'statusCode': 400, 'body': json.dumps({'message': 'Invalid payload'})}
 
-                if not invited_user_emails or not trip_id:
-                    return {'statusCode': 400, 'body': json.dumps({'message': 'Invalid payload'})}
+            # Find the trip document using its ID
+            trip = await self.db.trip.find_one({"trip_id": trip_id})
+            print("trip:", trip)
 
-                # Find the trip document using its ID
-                trip = await self.db.trip.find_one({"trip_id": trip_id})
-                print("trip:",trip)
-
+            if not trip:
+                # If not found, try finding the trip by _id
+                trip = await self.db.trips.find_one({"_id": ObjectId(trip_id)})
                 if not trip:
-                    # If not found, try finding the trip by _id
-                    trip = await self.db.trips.find_one({"_id": ObjectId(trip_id)})
-                    if not trip:
-                        return {'statusCode': 404, 'body': json.dumps({'message': 'Trip not found'})}
-
-                # Check if the user is already a member
-                participants = trip.get('participants', [])
-                print("participants:",participants)
-                for invited_user_email in invited_user_emails:
-                    if invited_user_email in participants:
-                        return {'statusCode': 400,
-                                'body': json.dumps({'message': 'User is already a member of the trip'})}
-
-                # Check if the user has already been invited
-                invitations = trip.get('invitations', [])
-
-                # Check if the user has already been invited
-                for invited_user_email in invited_user_emails:
-                    if any(isinstance(invitation, dict) and invitation.get('invited_user_email') == invited_user_email
-                           for
-                           invitation in invitations):
-                        return {'statusCode': 400,
-                                'body': json.dumps({'message': 'User has already been invited to the trip'})}
-                    print("invited_user_emails:",invited_user_emails)
-
-                if 'invitations' not in trip:
-                    trip['invitations'] = []
-
-                # Add the new invitations
-                new_invitations = [{'invited_user_email': invited_user_email, 'status': 'invited'} for
-                                   invited_user_email in
-                                   invited_user_emails]
-                trip['invitations'].extend(new_invitations)
-                print(new_invitations)
-                trips_id = trip.get("_id")
-                print(trips_id)
-                # Calculate total participants and invited users count
-                total_participants = len(participants) + sum(1 for inv in trip['invitations'] if inv.get('invited_user_email'))
-                # total_participants = len([participants]+[invited_user_emails])
-                # Update max_people field
-                trip['max_people'] = total_participants
-                if not trips_id:
                     return {'statusCode': 404, 'body': json.dumps({'message': 'Trip not found'})}
 
-                # Update the trip document with the new 'invitations' list
-                result = await self.db.trip.update_one(
-                    {"_id": ObjectId(trips_id)},
-                    {'$set': {"invitations": trip['invitations'], "max_people": total_participants}}
-                )
-                print(result)
-                if result.matched_count > 0 and result.modified_count > 0:
-                    return {'statusCode': 200, 'body': json.dumps({'message': 'Invitations sent successfully'})}
-                else:
-                    return {'statusCode': 500, 'body': json.dumps({'message': 'Failed to update trip document'})}
+            # Check if the user is already a member
+            participants = trip.get('participants', [])
+            print("participants:", participants)
+            for invited_user_email in invited_user_emails:
+                if invited_user_email in participants:
+                    return {'statusCode': 400,
+                            'body': json.dumps({'message': 'User is already a member of the trip'})}
+
+            # Check if the user has already been invited
+            invitations = trip.get('invitations', [])
+
+            # Check if the user has already been invited
+            for invited_user_email in invited_user_emails:
+                if any(isinstance(invitation, dict) and invitation.get('invited_user_email') == invited_user_email
+                       for
+                       invitation in invitations):
+                    return {'statusCode': 400,
+                            'body': json.dumps({'message': 'User has already been invited to the trip'})}
+                print("invited_user_emails:", invited_user_emails)
+
+            if 'invitations' not in trip:
+                trip['invitations'] = []
+
+            # Add the new invitations
+            new_invitations = [{'invited_user_email': invited_user_email, 'status': 'invited'} for
+                               invited_user_email in
+                               invited_user_emails]
+            trip['invitations'].extend(new_invitations)
+            print(new_invitations)
+            trips_id = trip.get("_id")
+            print(trips_id)
+            # Calculate total participants considering both participants and invited users
+            group_members_response = await self.fetch_joined_invitees(trip_id=trip_id, db=mongo)
+            group_members = group_members_response.get("joined_emails", [])
+            print("group_members", group_members)
+            total_participants = len(trip.get('participants', []))
+            print("total_participants", total_participants)
+            if group_members:
+                total_participants += len(group_members)
+                print("total_participants", total_participants)
+            trip['max_people'] = total_participants
+            if not trips_id:
+                return {'statusCode': 404, 'body': json.dumps({'message': 'Trip not found'})}
+
+            # Update the trip document with the new 'invitations' list
+            result = await self.db.trip.update_one(
+                {"_id": ObjectId(trips_id)},
+                {'$set': {"invitations": trip['invitations'], "max_people": total_participants}}
+            )
+            # print(result)
+            if result.matched_count > 0 and result.modified_count > 0:
+                return {'statusCode': 200, 'body': json.dumps({'message': 'Invitations sent successfully'})}
             else:
-                return {'statusCode': 401, 'body': json.dumps({'message': 'Invalid or expired token'})}
+                return {'statusCode': 500, 'body': json.dumps({'message': 'Failed to update trip document'})}
         except json.JSONDecodeError as json_error:
             return {'statusCode': 400, 'body': json.dumps({'message': 'Invalid JSON format in request body'})}
         except Exception as e:
             return {'statusCode': 500, 'body': json.dumps({'message': str(e)})}  # Convert the exception to string
 
-    #         # TODO: add in functionality to also handle an array of locations and array of start date and end dates
 
     async def filter_and_sort_trips(self, event):
         try:
