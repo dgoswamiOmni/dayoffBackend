@@ -54,6 +54,10 @@ class TripDataHandler:
 
             # Save the messaging room details in the database
             await self.db.messaging_room.insert_one(messaging_room.to_dict())
+            await self.db.messaging_room.update_one(
+                {"trip_id": trip_details['trip_id']},
+                {'$push': {'messages': {'sender': trip_details.get('creator_email'), 'message': 'Joined Trip Successfully', 'joined': True}}}
+            )
 
             return {'statusCode': 200, 'body': json.dumps(
                 {'message': 'Trip and messaging room created successfully', 'trip_id': trip_details['trip_id'],
