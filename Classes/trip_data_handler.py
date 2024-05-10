@@ -141,17 +141,12 @@ class TripDataHandler:
 
             # Check if the leaving user is the creator
             if email == trip['creator_email']:
-                # If the leaving user is the creator, decrement max_people by 1
-                new_max_people = max(0, trip.get('max_people', 0) - 1)
+                # If the leaving user is the creator and there are no other participants left, set new_max_people to 0
+                participants_left = len(trip.get('participants', []))
+                new_max_people = 0 if participants_left == 0 else max(0, trip.get('max_people', 0) - 1)
             else:
                 # Get the updated trip document
                 updated_trip = await self.db.trip.find_one({"trip_id": trip_id})
-
-                # Check if 'invitations' field exists in the document
-                if 'invitations' in updated_trip:
-                    # Remove the user from the invited_user_email arrays in invitations
-                    await self.db.trip.update_one({"trip_id": trip_id},
-                                                  {'$pull': {'invitations.$[].invited_user_email': email}})
 
                 # Calculate the number of participants left
                 participants_left = len(updated_trip.get('participants', []))
@@ -159,8 +154,23 @@ class TripDataHandler:
                 # Update the max_people count by subtracting the number of participants left
                 new_max_people = max(0, trip.get('max_people', 0) - participants_left)
 
+                # Check if the leaving user was a previous participant
+                if email in trip.get('participants', []):
+                    # If the leaving user is not the creator and there are no other participants left, set new_max_people to 0
+                    new_max_people = 0 if participants_left == 0 else new_max_people
+
+                    # Check if 'invitations' field exists in the document
+                if 'invitations' in updated_trip:
+                    # Remove the user from the invited_user_email arrays in invitations and update status
+                    await self.db.trip.update_one(
+                        {"trip_id": trip_id},
+                        {'$pull': {'invitations.$[].invited_user_email': email},
+                         '$set': {'invitations.$[].status': f'{email} left the trip'}}
+                    )
+
             # Update the trip document with the new max_people count
             await self.db.trip.update_one({"trip_id": trip_id}, {'$set': {'max_people': new_max_people}})
+
 
             return {'statusCode': 200, 'body': json.dumps({'message': 'Left trip successfully'})}
         except Exception as e:
