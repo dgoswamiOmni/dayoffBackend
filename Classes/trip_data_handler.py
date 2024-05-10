@@ -50,7 +50,7 @@ class TripDataHandler:
             # README: participants in messaging room will just be a copy of the ones in trip document so unsure if needed?
             room_id = ''.join([str(random.randint(0, 9)) for _ in range(10)])
             messaging_room = MessagingRoom(db=self.db, room_id=room_id, trip_id=trip_details['trip_id'],
-                                           participants=[{trip_details.get('creator_email'): 'Name'}])
+                                           participants=[{trip_details.get('creator_email'): 'Created the trip'}])
 
             # Save the messaging room details in the database
             await self.db.messaging_room.insert_one(messaging_room.to_dict())
