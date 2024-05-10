@@ -89,6 +89,11 @@ class TripDataHandler:
                 {"trip_id": trip_id},
                 {'$addToSet': {'participants': email}}
             )
+            # Update the status of invited users who have joined
+            await self.db.trip.update_many(
+                {"trip_id": trip_id, "invitations.invited_user_email": email},
+                {'$set': {'invitations.$.status': 'joined'}}
+            )
             await self.db.messaging_room.update_one(
                 {"trip_id": trip_id},
                 {'$push': {'messages': {'sender': email, 'message': 'Joined Trip Successfully', 'joined': True}}}
