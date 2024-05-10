@@ -436,17 +436,32 @@ class UserDataHandler:
             if messaging_room:
                 # Fetch participants with joined=true from messaging_room
                 messaging_room_joined = await db["messaging_room"].find_one(
-                    {"trip_id": trip_id, "messages.joined": True})
+                    {"trip_id": trip_id, "messages.joined": True}
+                )
                 if messaging_room_joined:
                     messages = messaging_room_joined.get("messages", [])
                     print(messages)
-                    joined_emails = [message["sender"] for message in messages if
-                                     "joined" in message and message["joined"]]
-                    print(joined_emails)
 
-                    # Fetch user details for the joined emails
+                    # Get the last joined user
+                    last_joined_message = next(
+                        (
+                            message
+                            for message in reversed(messages)
+                            if "joined" in message and message["joined"]
+                        ),
+                        None,
+                    )
+                    print("last_joined_message", last_joined_message)
+                    # Fetch user details for users who have not left
+                    valid_emails = set()
+                    for message in messages:
+                        if "joined" in message and message["joined"]:
+                            valid_emails.add(message["sender"])
+                        if "left" in message and message["left"]:
+                            valid_emails.discard(message["sender"])
+
                     group_members = []
-                    for email in joined_emails:
+                    for email in valid_emails:
                         user = await db["user"].find_one({"email_id": email})
                         if user:
                             # Extract required fields from user data
@@ -455,9 +470,10 @@ class UserDataHandler:
                                 "email_id": user["email_id"],
                                 "profile_picture": user["profile_picture"],
                                 "job": user["job"],
-                                "residence": user["residence"]
+                                "country": user["country"]
                             }
                             group_members.append(user_data)
+                            print(user_data)
 
                     return {"group_members": group_members}
                 else:
@@ -467,7 +483,6 @@ class UserDataHandler:
         except Exception as e:
             logging.error(f"An error occurred: {str(e)}")
             raise HTTPException(status_code=500, detail=str(e))
-
 
 
 # Example usage:
