@@ -274,13 +274,10 @@ class TripDataHandler:
             print(trips_id)
             # Calculate total participants considering both participants and invited users
             group_members_response = await self.fetch_joined_invitees(trip_id=trip_id, db=mongo)
-            group_members = group_members_response.get("joined_emails", [])
-            print("group_members", group_members)
-            total_participants = len(trip.get('participants', []))
-            print("total_participants", total_participants)
-            if group_members:
-                total_participants += len(group_members)
-                print("total_participants", total_participants)
+            joined_emails = group_members_response.get("joined_emails", [])
+            # print("group_members", joined_emails)
+            total_participants = len(joined_emails)
+            # print("total_participants", total_participants)
             trip['max_people'] = total_participants
             if not trips_id:
                 return {'statusCode': 404, 'body': json.dumps({'message': 'Trip not found'})}
