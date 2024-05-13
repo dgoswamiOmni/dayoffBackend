@@ -403,7 +403,12 @@ class TripDataHandler:
             )
             await self.db.messaging_room.update_one(
                 {"trip_id": trip_id},
-                {'$push': {'messages': {'sender': new_participants, 'message': 'Has been added in the trip Successfully', 'joined': True}}}
+                {'$push': {
+                    'messages': {
+                        '$each': [{'sender': p, 'message': 'Has been added in the trip Successfully', 'joined': True}
+                                  for p in new_participants]},
+                    'participants': {'$each': new_participants}
+                }}
             )
 
             if result.matched_count > 0 and result.modified_count > 0:
