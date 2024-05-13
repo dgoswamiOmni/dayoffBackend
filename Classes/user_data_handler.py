@@ -456,9 +456,13 @@ class UserDataHandler:
                     valid_emails = set()
                     for message in messages:
                         if "joined" in message and message["joined"]:
-                            valid_emails.add(message["sender"])
+                            # Ensure message["sender"] is a string before adding it to the set
+                            if isinstance(message["sender"], str):
+                                valid_emails.add(message["sender"])
                         if "left" in message and message["left"]:
-                            valid_emails.discard(message["sender"])
+                            # Ensure message["sender"] is a string before removing it from the set
+                            if isinstance(message["sender"], str):
+                                valid_emails.discard(message["sender"])
 
                     group_members = []
                     for email in valid_emails:
