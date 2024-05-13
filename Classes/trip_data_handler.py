@@ -52,11 +52,25 @@ class TripDataHandler:
             messaging_room = MessagingRoom(db=self.db, room_id=room_id, trip_id=trip_details['trip_id'],
                                            participants=[{trip_details.get('creator_email'): 'Created the trip'}])
 
+            # Identify newly added participants
+            new_participants = [p for p in trip_details.get('participants',[]) if p not in trip_details.get('creator_email')]
+
+
             # Save the messaging room details in the database
             await self.db.messaging_room.insert_one(messaging_room.to_dict())
             await self.db.messaging_room.update_one(
                 {"trip_id": trip_details['trip_id']},
                 {'$push': {'messages': {'sender': trip_details.get('creator_email'), 'message': 'Joined Trip Successfully', 'joined': True}}}
+            )
+            await self.db.messaging_room.update_one(
+                {"trip_id": trip_details['trip_id']},
+                {'$addToSet': {'participants': trip_details['participants']}}
+            )
+            await self.db.messaging_room.update_one(
+                {"trip_id": trip_details['trip_id']},
+                {'$push': {
+                    'messages': {'sender': new_participants, 'message': 'Has been added in the trip Successfully',
+                                 'joined': True}}}
             )
 
             return {'statusCode': 200, 'body': json.dumps(
@@ -365,6 +379,15 @@ class TripDataHandler:
             trip_id = event.get('trip_id')
             num_people = event.get('num_people')
             description = event.get('description')
+            participants = event.get('participants',[])
+
+            # Get the existing participants from the database
+            existing_participants = await self.get_existing_participants(trip_id)
+
+            # Identify newly added participants
+            new_participants = [p for p in participants if p not in existing_participants]
+
+            max_people = len(participants)
 
             # Validate if trip_id is provided
             if not trip_id:
@@ -373,7 +396,14 @@ class TripDataHandler:
             # Update the trip details in the database
             result = await self.db.trip.update_one(
                 {"trip_id": trip_id},
-                {'$set': {'num_people': num_people, 'description': description}}
+                {'$set': {'num_people': f'{num_people} participants with email '
+                                        f'{new_participants}has been added',
+                          'description': description,
+                          'participants':participants,'max_people':max_people}}
+            )
+            await self.db.messaging_room.update_one(
+                {"trip_id": trip_id},
+                {'$push': {'messages': {'sender': new_participants, 'message': 'Has been added in the trip Successfully', 'joined': True}}}
             )
 
             if result.matched_count > 0 and result.modified_count > 0:
@@ -382,6 +412,12 @@ class TripDataHandler:
                 return {'statusCode': 404, 'body': json.dumps({'message': 'Trip not found'})}
         except Exception as e:
             return {'statusCode': 500, 'body': json.dumps({'message': str(e)})}  # Return 500 for internal server error
+
+    async def get_existing_participants(self, trip_id):
+        # Retrieve the existing list of participants for the trip from the database
+        trip_data = await self.db.trip.find_one({"trip_id": trip_id})
+        existing_participants = trip_data.get('participants', [])
+        return existing_participants
 
 
     async def delete_trip(self, event: dict):
