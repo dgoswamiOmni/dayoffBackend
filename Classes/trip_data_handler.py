@@ -62,16 +62,17 @@ class TripDataHandler:
                 {"trip_id": trip_details['trip_id']},
                 {'$push': {'messages': {'sender': trip_details.get('creator_email'), 'message': 'Joined Trip Successfully', 'joined': True}}}
             )
-            await self.db.messaging_room.update_one(
-                {"trip_id": trip_details['trip_id']},
-                {'$addToSet': {'participants': trip_details['participants']}}
-            )
-            await self.db.messaging_room.update_one(
-                {"trip_id": trip_details['trip_id']},
-                {'$push': {
-                    'messages': {'sender': new_participants, 'message': 'Has been added in the trip Successfully',
-                                 'joined': True}}}
-            )
+            if new_participants:
+                await self.db.messaging_room.update_one(
+                    {"trip_id": trip_details['trip_id']},
+                    {'$addToSet': {'participants': trip_details['participants']}}
+                )
+                await self.db.messaging_room.update_one(
+                    {"trip_id": trip_details['trip_id']},
+                    {'$push': {
+                        'messages': {'sender': new_participants, 'message': 'Has been added in the trip Successfully',
+                                     'joined': True}}}
+                )
 
             return {'statusCode': 200, 'body': json.dumps(
                 {'message': 'Trip and messaging room created successfully', 'trip_id': trip_details['trip_id'],
