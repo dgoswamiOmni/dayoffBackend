@@ -6,6 +6,7 @@ from Classes.trip_data_handler import TripDataHandler
 from Classes.messaging_room_handler import MessagingRoom
 from Classes.otp_handler import OtpHandler
 from Utils.mongo_utils import MongoUtils
+import json
 
 app = FastAPI(title="DayOff APIs")
 handler = Mangum(app)
@@ -57,6 +58,21 @@ async def logout_user(event: dict):
     user_handler = UserDataHandler(username="", password="", email=email, otp_handler=otp_handler)
     return await user_handler.logout_user(mongo, token)
 
+
+@app.post("/forgot-password",response_model=dict)
+async def forgot_password(event: dict):
+    email = event.get('email')
+    user_data_handler = UserDataHandler(username=None, password=None, email=email, otp_handler=otp_handler)
+    return await user_data_handler.forgot_password(mongo,event)
+
+
+@app.post("/reset-password",response_model=dict)
+async def reset_password(event: dict):
+    email = event.get('email')
+    otp = event.get('otp')
+    new_password = event.get('new_password')
+    user_data_handler = UserDataHandler(username=None, password=new_password, email=email, otp_handler=otp_handler)
+    return await user_data_handler.reset_password(mongo, event)
 
 @app.post("/putUserData", response_model=dict)
 async def put_user_data(event: dict):
