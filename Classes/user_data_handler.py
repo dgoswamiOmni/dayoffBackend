@@ -138,14 +138,17 @@
 # # user_handler = UserDataHandler(username="john_doe", password="password123", email="john_doe@example.com")
 # # response = user_handler.authenticate_user(db)
 # # print(response)
-import os
 import json
 from passlib.hash import pbkdf2_sha256
 from Utils.auth_utils import generate_jwt_token, log_login, log_logout, validate_jwt_token
-from bson import ObjectId
-from fastapi import HTTPException,File, UploadFile
-from datetime import datetime
+from fastapi import HTTPException, File, UploadFile
 from Utils.s3_utils import upload_to_s3
+import logging
+from fastapi.responses import JSONResponse
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class UserDataHandler:
@@ -214,6 +217,58 @@ class UserDataHandler:
             # Log the exception
             print(f"Exception in logout_user: {str(e)}")
             return {'statusCode': 500, 'body': json.dumps({'message': 'Internal Server Error'})}
+
+
+    async def forgot_password(self, db, event: dict):
+        try:
+            # data = await request.json()
+            email = event["email"]
+            if not email:
+                raise HTTPException(status_code=400, detail="Email is required")
+
+            user = await db.user.find_one({"email_id": email})
+            if not user:
+                raise HTTPException(status_code=404, detail="Email not found")
+
+            response = await self.otp_handler.send_otp_sms(email, user["user_name"])
+            return JSONResponse(content=response)
+        except HTTPException as http_exc:
+            logger.error(f"HTTP error occurred: {http_exc.detail}")
+            raise http_exc
+        except Exception as e:
+            logger.error(f"An unexpected error occurred: {str(e)}")
+            raise HTTPException(status_code=500, detail="Internal Server Error")
+
+    async def reset_password(self, db, event: dict):
+        try:
+            email = event["email"]
+            otp = event["otp"]
+            new_password = event["new_password"]
+
+            if not email or not otp or not new_password:
+                raise HTTPException(status_code=404, detail="Email, OTP, and new password are required")
+
+            otp_response = await self.otp_handler.validate_otp_message(email, otp)
+
+            if isinstance(otp_response, str):
+                # If otp_response is a string, it means there was an error.
+                raise HTTPException(status_code=400, detail=otp_response)
+            else:
+                # Otherwise, otp_response is a dictionary.
+                if otp_response["statusCode"] != 200:
+                    raise HTTPException(status_code=otp_response["statusCode"], detail=otp_response["body"])
+
+                password_hash = pbkdf2_sha256.hash(new_password)
+                await db.user.update_one({"email_id": email}, {"$set": {"password_hash": password_hash}})
+
+                return {"message": "Password reset successfully"}
+        except HTTPException as http_exc:
+            logger.error(f"HTTP error occurred: {http_exc.detail}")
+            raise http_exc
+        except Exception as e:
+            logger.error(f"An unexpected error occurred: {str(e)}")
+            raise HTTPException(status_code=500, detail="Internal Server Error")
+
 
     # async def put_user_data(self, db):
     #     try:
