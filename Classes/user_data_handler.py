@@ -402,6 +402,9 @@ class UserDataHandler:
                         "user_name": user_data["user_name"],
                         "email_id": user_data["email_id"],
                         "profile_picture": user_data.get("profile_picture", None),
+                        "country": user_data.get("residence", None),
+                        "job": user_data.get("job", None),
+                        "linkedin": user_data.get("linkedin", None),
                     }
                 }
             else:
@@ -447,16 +450,17 @@ class UserDataHandler:
     #         # Log the exception
     #         print(f"Exception in put_profile_picture: {str(e)}")
     #         return {"statusCode": 500, "body": json.dumps({'message': 'Internal Server Error'})}
-    async def put_profile_picture(self, db, user_id, file: UploadFile = File(...)):
+    async def put_profile_picture(self, db, user_id, file):
         try:
-            # Upload image to S3 using the utility function
-            bucket_name = "hello-blog"
-            file_name = f"{user_id}_profile_picture.png"
-            # s3_url = upload_to_s3(bucket_name, file_name, image_data)
-            s3_url = upload_to_s3(bucket_name, file_name, file.file)
+            # # Upload image to S3 using the utility function
+            # bucket_name = "hello-blog"
+            # file_name = f"{user_id}_profile_picture.png"
+            # # s3_url = upload_to_s3(bucket_name, file_name, image_data)
+            # s3_url = upload_to_s3(bucket_name, file_name, file)
 
             # Update user data in the database with the S3 URL
-            await db.user.update_one({"email_id": self.email}, {"$set": {"profile_picture": s3_url}})
+            # await db.user.update_one({"email_id": self.email}, {"$set": {"profile_picture": s3_url}})
+            await db.user.update_one({"email_id": self.email}, {"$set": {"profile_picture": file}})
 
             return {"message": "Profile picture uploaded successfully"}
         except Exception as e:
@@ -478,6 +482,16 @@ class UserDataHandler:
         try:
             # Update user data in the database with the job
             await db.user.update_one({"email_id": self.email}, {"$set": {"job": job}})
+            return {"message": "Job updated successfully"}
+        except Exception as e:
+            # Log the exception
+            print(f"Exception in put_job: {str(e)}")
+            return {"statusCode": 500, "body": json.dumps({'message': 'Internal Server Error'})}
+
+    async def put_linkedin(self, db, url):
+        try:
+            # Update user data in the database with the job
+            await db.user.update_one({"email_id": self.email}, {"$set": {"linkedin": url}})
             return {"message": "Job updated successfully"}
         except Exception as e:
             # Log the exception

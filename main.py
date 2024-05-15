@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Query,UploadFile, File
+from fastapi import FastAPI, HTTPException, Query, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
 from Classes.user_data_handler import UserDataHandler
@@ -47,6 +47,7 @@ otp_handler = OtpHandler(mongo)
 
 @app.post("/login", response_model=dict)
 async def login_user(event: dict):
+    print("login called")
     password, email = event.get('password'), event.get('email')
     user_handler = UserDataHandler(username="", password=password, email=email, otp_handler=otp_handler)
     return await user_handler.authenticate_user(mongo)
@@ -98,8 +99,14 @@ async def put_user_data(event: dict):
 #     # if data uploaded successfully then return a valid status code
 #     return {'statusCode': 200}
 
+
+#email: str, country: str, job: str, linkedin: str, photo: UploadFile = File(...)
 @app.post("/user/putExtra", response_model=dict)
-async def put_extra_data(email: str, country: str, job: str, photo: UploadFile = File(...)):
+async def put_extra_data(event: Request):
+    event = await event.json()
+    print(event)
+    email, photo, country, job, linkedin = event.get("email"), event.get("photo"), event.get("country"), event.get("job"), event.get("linkedin")
+
     try:
         user_handler = UserDataHandler(username="", password="", email=email, otp_handler=otp_handler)
         if not email:
@@ -112,6 +119,8 @@ async def put_extra_data(email: str, country: str, job: str, photo: UploadFile =
             await user_handler.put_residence(mongo, country)
         if job:
             await user_handler.put_job(mongo, job)
+        if linkedin:
+            await user_handler.put_linkedin(mongo, linkedin)
         # if data uploaded successfully then return a valid status code
         return {'statusCode': 200}
     except Exception as e:
@@ -214,5 +223,4 @@ async def validate_otp_message(event: dict):
 if __name__ == "__main__":
     import uvicorn
 
-    # 100.88.29.71
-    uvicorn.run(app, host="100.88.28.64", port=8090)
+    uvicorn.run(app, host="192.168.1.116", port=8090)
