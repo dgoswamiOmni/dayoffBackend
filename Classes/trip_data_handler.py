@@ -272,9 +272,22 @@ class TripDataHandler:
                     valid_emails = set()
                     for message in messages:
                         if "joined" in message and message["joined"]:
-                            valid_emails.add(message["sender"])
+                            sender = message["sender"]
+                            if isinstance(sender, str):
+                                valid_emails.add(sender)
+                            elif isinstance(sender, list):
+                                for email in sender:
+                                    if isinstance(email, str):
+                                        valid_emails.add(email)
                         if "left" in message and message["left"]:
-                            valid_emails.discard(message["sender"])
+                            sender = message["sender"]
+                            if isinstance(sender, str):
+                                valid_emails.discard(sender)
+                            elif isinstance(sender, list):
+                                for email in sender:
+                                    if isinstance(email, str):
+                                        valid_emails.discard(email)
+
 
                     return {"joined_emails": valid_emails}
                 else:
