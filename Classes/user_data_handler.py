@@ -519,6 +519,14 @@ class UserDataHandler:
                             if isinstance(message["sender"], str):
                                 valid_emails.discard(message["sender"])
 
+                        sender = message.get("sender")
+                        if sender and isinstance(sender, list) and message.get(
+                                "message") == "Has been added to the trip Successfully":
+                            # Iterate over each email in the list and add it to the set
+                            for email in sender:
+                                if isinstance(email, str):
+                                    valid_emails.add(email)
+
                     group_members = []
                     for email in valid_emails:
                         user = await db["user"].find_one({"email_id": email})
