@@ -100,7 +100,7 @@ class TripDataHandler:
                     }}
                 )
 
-            await self.add_participants_to_trip(trip_details)
+            # await self.add_participants_to_trip(trip_details)
 
             response_message = {
                 'message': 'Trip and messaging room created successfully',
@@ -122,15 +122,15 @@ class TripDataHandler:
             logging.error("Error creating trip: %s", e)
             return {'statusCode': 500, 'body': json.dumps({'message': 'Internal Server Error', 'Exception': str(e)})}
 
-    async def add_participants_to_trip(self, trip_details):
-        trip_id = trip_details['trip_id']
-        creator_email = trip_details['creator_email']
+    # async def add_participants_to_trip(self, trip_details):
+    #     trip_id = trip_details['trip_id']
+    #     creator_email = trip_details['creator_email']
 
-        for email in trip_details['participants']:
-            if email != creator_email:
-                await self.db.participants.insert_one(
-                    {"trip_id": trip_id, "participant_email": email}
-                )
+    #     for email in trip_details['participants']:
+    #         if email != creator_email:
+    #             await self.db.participants.insert_one(
+    #                 {"trip_id": trip_id, "participant_email": email}
+    #             )
 
     async def join_trip(self, event):
         try:
