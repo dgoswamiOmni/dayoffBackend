@@ -173,10 +173,11 @@ class UserDataHandler:
                 return {'statusCode': 401, 'body': json.dumps({'message': 'Invalid credentials'})}
 
             # Generate a JWT token
-            token_data = generate_jwt_token(self.username)
+            token_data = generate_jwt_token(self.username,self.email)
 
             # Log the login time
-            token_data = log_login(self.username, token_data)
+            token_data = log_login(self.username,self.email,token_data)
+            token_data['email'] = self.email  # Add the email to the token data
 
             session_start = await db.session.insert_one(token_data)
 
@@ -192,10 +193,18 @@ class UserDataHandler:
         try:
             # Validate the JWT token
             decoded_token = validate_jwt_token(token)
+            print(f"Decoded token: {decoded_token}")
 
-            if decoded_token and decoded_token['sub'] == self.username:
+            if decoded_token and decoded_token['email'] == self.email:
                 # Search for the user's session record
-                session_record = await db.session.find_one({"username": self.username})
+                # session_record = await db.session.find_one({"username": self.username})
+                email = decoded_token.get('email')
+                if not email:
+                    return {'statusCode': 400, 'body': json.dumps({'message': 'Invalid token: email not found'})}
+
+                # Search for the user's session record based on the email
+                session_record = await db.session.find_one({"email": email})
+                print("session_record",session_record)
 
                 if session_record:
                     # Log the logout time and obtain token data
@@ -203,9 +212,12 @@ class UserDataHandler:
 
                     # Append token_data to the existing session record
                     updated_session_record = {**session_record, **token_data}
+                    updated_session_record.pop('_id', None)
+                    updated_session_record['logout_time'] = token_data['logout_time']  # Set logout time
+                    print(updated_session_record)
 
                     # Update the user's session record in the database
-                    await db.session.update_one({"username": self.username}, {"$set": updated_session_record})
+                    await db.session.update_one({"email": email}, {"$set": updated_session_record})
 
                     return {'statusCode': 200, 'body': json.dumps({'message': 'Logout successful'})}
 
@@ -217,7 +229,6 @@ class UserDataHandler:
             # Log the exception
             print(f"Exception in logout_user: {str(e)}")
             return {'statusCode': 500, 'body': json.dumps({'message': 'Internal Server Error'})}
-
 
     async def forgot_password(self, db, event: dict):
         try:
