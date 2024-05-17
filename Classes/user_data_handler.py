@@ -230,6 +230,23 @@ class UserDataHandler:
             print(f"Exception in logout_user: {str(e)}")
             return {'statusCode': 500, 'body': json.dumps({'message': 'Internal Server Error'})}
 
+    async def get_token_by_email(self, db, email):
+        try:
+            # Search for the user's session record based on the email
+            session_record = await db.session.find_one({"email": email})
+
+            if session_record:
+                # Extract the token from the session record
+                token = session_record.get("token")
+                return {'statusCode': 200, 'body': json.dumps({'token': token})}
+            else:
+                return {'statusCode': 404, 'body': json.dumps({'message': 'Token not found for the provided email'})}
+        except Exception as e:
+            # Log the exception
+            print(f"Exception in get_token_by_email: {str(e)}")
+            return {'statusCode': 500, 'body': json.dumps({'message': 'Internal Server Error'})}
+
+
     async def forgot_password(self, db, event: dict):
         try:
             # data = await request.json()
