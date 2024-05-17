@@ -304,7 +304,9 @@ class TripDataHandler:
     async def send_trip_invitation(self, event):
         try:
             # body = json.loads(event["body"])  # Parse the JSON body
-            invited_user_emails = [event.get("invited_user_emails", [])]
+            invited_user_emails = event.get("invited_user_emails", [])
+            if not isinstance(invited_user_emails, list):
+                invited_user_emails = [invited_user_emails]  # Ensure it's a list
             trip_id = event.get("trip_id")
 
             if not invited_user_emails or not trip_id:
