@@ -430,8 +430,8 @@ class UserDataHandler:
                         "user_name": user_data["user_name"],
                         "email_id": user_data["email_id"],
                         "profile_picture": user_data.get("profile_picture", None),
-                        "country": user_data.get("residence", None),
-                        "job": user_data.get("job", None),
+                        "job": user_data["job"],
+                        "country": user_data["country"],
                         "linkedin": user_data.get("linkedin", None),
                     }
                 }
