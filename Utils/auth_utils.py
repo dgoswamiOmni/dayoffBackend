@@ -28,10 +28,11 @@ def validate_jwt_token(token):
         return None  # Invalid token
 
 
-def generate_jwt_token(username):
+def generate_jwt_token(username,email):
     expiration_time = datetime.utcnow() + timedelta(hours=24)  # You may adjust the expiration time
     payload = {
         'sub': username,
+        'email': email,
         'exp': expiration_time,
         'iat': datetime.utcnow(),
         'jti': ''.join([str(random.randint(0, 9)) for _ in range(10)])  # Unique identifier for the token
@@ -41,6 +42,7 @@ def generate_jwt_token(username):
     # Store the token in the MongoDB collection
     token_data = {
         'username': username,
+        'email': email,
         'token': token
     }
 
@@ -51,12 +53,13 @@ def log_login(username, token_data):
     login_timestamp = datetime.utcnow()
     token_data.update({
         'login_time': login_timestamp,
-        'user_name': username
+        'user_name': username,
+        'email': email
     })
     return token_data
 
 
-def log_logout(username, token_data):
+def log_logout(username,email, token_data):
     logout_timestamp = datetime.utcnow()
     token_data.update({
         'logout_time': logout_timestamp,

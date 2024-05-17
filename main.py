@@ -59,6 +59,11 @@ async def logout_user(event: dict):
     user_handler = UserDataHandler(username="", password="", email=email, otp_handler=otp_handler)
     return await user_handler.logout_user(mongo, token)
 
+@app.post("/fetch_token_by_email", response_model=dict)
+async def logout_user(event: dict):
+    email = event.get('email')
+    user_handler = UserDataHandler(username="", password="", email=email, otp_handler=otp_handler)
+    return await user_handler.get_token_by_email(mongo, email)
 
 @app.post("/forgot-password",response_model=dict)
 async def forgot_password(event: dict):

@@ -21,65 +21,116 @@ class TripDataHandler:
     async def create_trip(self, event):
         try:
             current_time = datetime.datetime.utcnow().isoformat()
-            # Check if start_date and end_date are provided and not None
             start_date_str = event.get('start_date')
             end_date_str = event.get('end_date')
+            participants = event.get('participants', [])
+            creator_email = event.get('creator_email')
+            location = event.get('location')
+
+            # Check if start_date and end_date are provided and not None
             if start_date_str is None or end_date_str is None:
                 return {'statusCode': 400, 'body': json.dumps({'message': 'start_date or end_date is missing'})}
 
-            trip_details = {
-                'creator_email': event.get('creator_email'),  # Use creator's email instead of username
+            # Check if a trip with the same start date, end date, and creator email already exists
+            existing_trip = await self.db.trip.find_one({
+                'creator_email': creator_email,
                 'start_date': datetime.datetime.strptime(start_date_str, '%a %b %d %Y %H:%M:%S %Z%z').strftime(
-                    '%Y-%m-%d'),  # Include start date
+                    '%Y-%m-%d'),
                 'end_date': datetime.datetime.strptime(end_date_str, '%a %b %d %Y %H:%M:%S %Z%z').strftime('%Y-%m-%d'),
-                # Include end date
-                # 'time': body.get('time'),
+                'location': location
+            })
+            if existing_trip:
+                return {'statusCode': 400,
+                        'body': {'message': 'A trip with the same details already exists'}}
+
+            # Check participants
+            valid_participants = []
+            unregistered_participants = []
+
+            for participant in participants:
+                if await self.db.user.find_one({"email_id": participant}) is not None:
+                    valid_participants.append(participant)
+                else:
+                    unregistered_participants.append(participant)
+
+            if unregistered_participants:
+                logging.info("The following participants are not registered: %s", unregistered_participants)
+
+            # Create trip details
+            trip_details = {
+                'creator_email': creator_email,
+                'start_date': datetime.datetime.strptime(start_date_str, '%a %b %d %Y %H:%M:%S %Z%z').strftime(
+                    '%Y-%m-%d'),
+                'end_date': datetime.datetime.strptime(end_date_str, '%a %b %d %Y %H:%M:%S %Z%z').strftime('%Y-%m-%d'),
                 'location': event.get('location'),
                 'description': event.get('description'),
-                'participants': [event.get('creator_email')] + event.get('participants', []),
-                # Include creator's email and other participants
-                # add in max people to trip data
-                'max_people': len(event.get('participants', [])) + 1,  # Count total participants including creator
+                'participants': [creator_email] + valid_participants,
+                'max_people': len(valid_participants) + 1,
                 'trip_id': ''.join([str(random.randint(0, 9)) for _ in range(10)]),
-                'created_at': current_time  # Include the time and date of creation
+                'created_at': current_time
             }
 
             result = await self.db.trip.insert_one(trip_details)
 
-            # README: unsure if room id is needed? as trip id is already unique so it could be used to identify unique rooms as well
-            # README: participants in messaging room will just be a copy of the ones in trip document so unsure if needed?
+            # Create messaging room
             room_id = ''.join([str(random.randint(0, 9)) for _ in range(10)])
             messaging_room = MessagingRoom(db=self.db, room_id=room_id, trip_id=trip_details['trip_id'],
-                                           participants=[{trip_details.get('creator_email'): 'Created the trip'}])
+                                           participants=[{creator_email: 'Created the trip'}])
 
-            # Identify newly added participants
-            new_participants = [p for p in trip_details.get('participants',[]) if p not in trip_details.get('creator_email')]
+            new_participants = [p for p in trip_details.get('participants', []) if p != creator_email]
 
-
-            # Save the messaging room details in the database
             await self.db.messaging_room.insert_one(messaging_room.to_dict())
             await self.db.messaging_room.update_one(
                 {"trip_id": trip_details['trip_id']},
-                {'$push': {'messages': {'sender': trip_details.get('creator_email'), 'message': 'Joined Trip Successfully', 'joined': True}}}
+                {'$push': {
+                    'messages': {'sender': creator_email, 'message': 'Joined Trip Successfully', 'joined': True}
+                }}
             )
+
             if new_participants:
                 await self.db.messaging_room.update_one(
                     {"trip_id": trip_details['trip_id']},
-                    {'$addToSet': {'participants': trip_details['participants']}}
+                    {'$push': {'participants': new_participants}}
                 )
                 await self.db.messaging_room.update_one(
                     {"trip_id": trip_details['trip_id']},
                     {'$push': {
-                        'messages': {'sender': new_participants, 'message': 'Has been added in the trip Successfully',
-                                     'joined': True}}}
+                        'messages': {'sender': new_participants, 'message': 'Has been added to the trip Successfully',
+                                     'joined': True}
+                    }}
                 )
 
-            return {'statusCode': 200, 'body': json.dumps(
-                {'message': 'Trip and messaging room created successfully', 'trip_id': trip_details['trip_id'],
-                 'room_id': room_id})}
+            # await self.add_participants_to_trip(trip_details)
+
+            response_message = {
+                'message': 'Trip and messaging room created successfully',
+                'trip_id': trip_details['trip_id'],
+                'room_id': room_id
+            }
+
+            if unregistered_participants:
+                response_message[
+                    'unregistered_participants'] =  unregistered_participants
+
+            if unregistered_participants and result.inserted_id:  # or check other conditions
+                return {'statusCode': 201, 'body': (
+                        response_message)}  # return status code 201 if participants not registered
+            else:
+                return {'statusCode': 200,
+                        'body': (response_message)}  # return status code 200 if everything is okay
         except Exception as e:
-            print(e)
+            logging.error("Error creating trip: %s", e)
             return {'statusCode': 500, 'body': json.dumps({'message': 'Internal Server Error', 'Exception': str(e)})}
+
+    # async def add_participants_to_trip(self, trip_details):
+    #     trip_id = trip_details['trip_id']
+    #     creator_email = trip_details['creator_email']
+
+    #     for email in trip_details['participants']:
+    #         if email != creator_email:
+    #             await self.db.participants.insert_one(
+    #                 {"trip_id": trip_id, "participant_email": email}
+    #             )
 
     async def join_trip(self, event):
         try:
@@ -221,9 +272,22 @@ class TripDataHandler:
                     valid_emails = set()
                     for message in messages:
                         if "joined" in message and message["joined"]:
-                            valid_emails.add(message["sender"])
+                            sender = message["sender"]
+                            if isinstance(sender, str):
+                                valid_emails.add(sender)
+                            elif isinstance(sender, list):
+                                for email in sender:
+                                    if isinstance(email, str):
+                                        valid_emails.add(email)
                         if "left" in message and message["left"]:
-                            valid_emails.discard(message["sender"])
+                            sender = message["sender"]
+                            if isinstance(sender, str):
+                                valid_emails.discard(sender)
+                            elif isinstance(sender, list):
+                                for email in sender:
+                                    if isinstance(email, str):
+                                        valid_emails.discard(email)
+
 
                     return {"joined_emails": valid_emails}
                 else:
@@ -240,7 +304,9 @@ class TripDataHandler:
     async def send_trip_invitation(self, event):
         try:
             # body = json.loads(event["body"])  # Parse the JSON body
-            invited_user_emails = [event.get("invited_user_emails", [])]
+            invited_user_emails = event.get("invited_user_emails", [])
+            if not isinstance(invited_user_emails, list):
+                invited_user_emails = [invited_user_emails]  # Ensure it's a list
             trip_id = event.get("trip_id")
 
             if not invited_user_emails or not trip_id:
