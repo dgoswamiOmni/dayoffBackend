@@ -430,8 +430,8 @@ class UserDataHandler:
                         "user_name": user_data["user_name"],
                         "email_id": user_data["email_id"],
                         "profile_picture": user_data.get("profile_picture", None),
-                        "job": user_data["job"],
-                        "country": user_data["country"],
+                        "job": user_data.get("job", None),
+                        "country": user_data.get("residence", None),
                         "linkedin": user_data.get("linkedin", None),
                     }
                 }
@@ -481,14 +481,14 @@ class UserDataHandler:
     async def put_profile_picture(self, db, user_id, file):
         try:
             # # Upload image to S3 using the utility function
-            # bucket_name = "hello-blog"
-            # file_name = f"{user_id}_profile_picture.png"
-            # # s3_url = upload_to_s3(bucket_name, file_name, image_data)
-            # s3_url = upload_to_s3(bucket_name, file_name, file)
+            bucket_name = "hello-blog"
+            file_name = f"{user_id}_profile_picture.png"
+            # s3_url = upload_to_s3(bucket_name, file_name, image_data)
+            s3_url = upload_to_s3(bucket_name, file_name, file)
 
             # Update user data in the database with the S3 URL
-            # await db.user.update_one({"email_id": self.email}, {"$set": {"profile_picture": s3_url}})
-            await db.user.update_one({"email_id": self.email}, {"$set": {"profile_picture": file}})
+            await db.user.update_one({"email_id": self.email}, {"$set": {"profile_picture": s3_url}})
+            #await db.user.update_one({"email_id": self.email}, {"$set": {"profile_picture": file}})
 
             return {"message": "Profile picture uploaded successfully"}
         except Exception as e:
