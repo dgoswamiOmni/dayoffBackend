@@ -49,7 +49,7 @@ def generate_jwt_token(username,email):
     return token_data
 
 
-def log_login(username, token_data):
+def log_login(username, email, token_data):
     login_timestamp = datetime.utcnow()
     token_data.update({
         'login_time': login_timestamp,
