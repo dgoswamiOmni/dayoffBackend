@@ -1,5 +1,6 @@
-from fastapi import FastAPI, HTTPException, Query, Request, UploadFile, File
+from fastapi import FastAPI, HTTPException, Query, Request, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from mangum import Mangum
 from Classes.user_data_handler import UserDataHandler
 from Classes.trip_data_handler import TripDataHandler
@@ -105,12 +106,26 @@ async def put_user_data(event: dict):
 #     return {'statusCode': 200}
 
 
-#email: str, country: str, job: str, linkedin: str, photo: UploadFile = File(...)
+class Params(BaseModel):
+    email: str = Form(...),
+    country: str = Form(...),
+    job: str = Form(...),
+    linkedin: str = Form(...),
+    photo: UploadFile = File(...)
+
 @app.post("/user/putExtra", response_model=dict)
 async def put_extra_data(event: Request):
     event = await event.json()
+    event = event["formData"]["_parts"]
+
+    event_dict = {}
+    for data in event:
+        event_dict[data[0]] = data[1]
+
+    event = event_dict
     print(event)
-    email, photo, country, job, linkedin = event.get("email"), event.get("photo"), event.get("country"), event.get("job"), event.get("linkedin")
+
+    email, country, job, linkedin, photo = event.get("email"), event.get("country"), event.get("job"), event.get("linkedin"), event.get("photo")
 
     try:
         user_handler = UserDataHandler(username="", password="", email=email, otp_handler=otp_handler)
@@ -119,7 +134,7 @@ async def put_extra_data(event: Request):
             return {"statusCode": 400, "error": "no email passed"}
         # upload non-null data to the db
         if photo:
-            await user_handler.put_profile_picture(mongo, email, photo)
+            await user_handler.put_profile_picture(mongo, email, photo["_data"])
         if country:
             await user_handler.put_residence(mongo, country)
         if job:
