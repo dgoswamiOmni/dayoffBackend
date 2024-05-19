@@ -123,9 +123,11 @@ async def put_extra_data(event: Request):
         event_dict[data[0]] = data[1]
 
     event = event_dict
-    print(event)
 
     email, country, job, linkedin, photo = event.get("email"), event.get("country"), event.get("job"), event.get("linkedin"), event.get("photo")
+    photo = UploadFile(photo)
+
+    print(email, country, job, linkedin, photo)
 
     try:
         user_handler = UserDataHandler(username="", password="", email=email, otp_handler=otp_handler)
@@ -134,7 +136,7 @@ async def put_extra_data(event: Request):
             return {"statusCode": 400, "error": "no email passed"}
         # upload non-null data to the db
         if photo:
-            await user_handler.put_profile_picture(mongo, email, photo["_data"])
+            await user_handler.put_profile_picture(mongo, email, photo)
         if country:
             await user_handler.put_residence(mongo, country)
         if job:
