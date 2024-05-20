@@ -481,7 +481,7 @@ class UserDataHandler:
     async def put_profile_picture(self, db, user_id, file: UploadFile = File(...)):
         try:
             # # Upload image to S3 using the utility function
-            bucket_name = "hello-blog"
+            bucket_name = "your s3 bucket name"
             file_name = f"{user_id}_profile_picture.png"
             # s3_url = upload_to_s3(bucket_name, file_name, image_data)
             s3_url = upload_to_s3(bucket_name, file_name, file) # TODO: this method does not upload uploadfile at all, complains that object of type coroutine has no len() even though an uploadfile is passed not a coroutine
