@@ -173,7 +173,9 @@ class UserDataHandler:
                 return {'statusCode': 401, 'body': json.dumps({'message': 'Invalid credentials'})}
 
             # Generate a JWT token
-            token_data = generate_jwt_token(self.username,self.email)
+            country = user.get('country')
+            job = user.get('job')
+            token_data = generate_jwt_token(self.username,self.email,country, job)
 
             # Log the login time
             token_data = log_login(self.username,self.email,token_data)
@@ -182,8 +184,16 @@ class UserDataHandler:
             session_start = await db.session.insert_one(token_data)
 
             return {'statusCode': 200,
-                    'body': json.dumps({'message': 'Login successful', 'session_start': str(session_start),
-                                        'session_token': token_data['token']})}
+                    'body': json.dumps({
+                        'message': 'Login successful',
+                        'session_start': str(session_start),
+                        'session_token': token_data['token'],
+                        'user_details': {  # Include user details in response
+                            'country': country,
+                            'job': job,
+                            'username': self.username
+                        }
+                    })}
         except Exception as e:
             # Log the exception
             print(f"Exception in authenticate_user: {str(e)}")
@@ -208,7 +218,7 @@ class UserDataHandler:
 
                 if session_record:
                     # Log the logout time and obtain token data
-                    token_data = log_logout(decoded_token['sub'], session_record)
+                    token_data = log_logout(decoded_token['email'], session_record)
 
                     # Append token_data to the existing session record
                     updated_session_record = {**session_record, **token_data}
