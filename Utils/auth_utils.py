@@ -33,6 +33,8 @@ def generate_jwt_token(username,email):
     payload = {
         'sub': username,
         'email': email,
+        'country': country,
+        'job': job,
         'exp': expiration_time,
         'iat': datetime.utcnow(),
         'jti': ''.join([str(random.randint(0, 9)) for _ in range(10)])  # Unique identifier for the token
@@ -43,7 +45,9 @@ def generate_jwt_token(username,email):
     token_data = {
         'username': username,
         'email': email,
-        'token': token
+        'token': token,
+        'country': country,
+        'job': job,
     }
 
     return token_data
