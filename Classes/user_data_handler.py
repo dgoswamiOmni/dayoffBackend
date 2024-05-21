@@ -431,7 +431,7 @@ class UserDataHandler:
                         "email_id": user_data["email_id"],
                         "profile_picture": user_data.get("profile_picture", None),
                         "job": user_data.get("job", None),
-                        "country": user_data.get("residence", None),
+                        "country": user_data.get("country", None),
                         "linkedin": user_data.get("linkedin", None),
                     }
                 }
@@ -500,7 +500,7 @@ class UserDataHandler:
     async def put_residence(self, db, residence):
         try:
             # Update user data in the database with the residence
-            await db.user.update_one({"email_id": self.email}, {"$set": {"residence": residence}})
+            await db.user.update_one({"email_id": self.email}, {"$set": {"country": residence}})
             return {"message": "Residence updated successfully"}
         except Exception as e:
             # Log the exception
