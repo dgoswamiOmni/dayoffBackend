@@ -250,6 +250,13 @@ async def filter_and_sort_trips(event: dict):
 async def get_trip_info(event: dict):
     return await trip_handler.get_trip_details(event)
 
+@app.post("/trips/matching-users", response_model=Dict)
+async def find_matching_users(event: dict):
+    try:
+        result = await trip_handler.find_users_with_matching_preferences(event)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/messaging/send", response_model=dict)
 async def send_message_to_room(event: dict):
