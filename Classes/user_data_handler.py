@@ -198,17 +198,6 @@ class UserDataHandler:
                         }
                     })}
 
-            return {'statusCode': 200,
-                    'body': json.dumps({
-                        'message': 'Login successful',
-                        'session_start': str(session_start),
-                        'session_token': token_data['token'],
-                        'user_details': {  # Include user details in response
-                            'country': country,
-                            'job': job,
-                            'username': self.username
-                        }
-                    })}
         except Exception as e:
             # Log the exception
             print(f"Exception in authenticate_user: {str(e)}")
