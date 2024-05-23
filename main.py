@@ -258,6 +258,14 @@ async def find_matching_users(event: dict):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/trips/participants", response_model=Dict)
+async def find_participants(event: dict):
+    try:
+        result = await trip_handler.get_trip_participants(event)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/messaging/send", response_model=dict)
 async def send_message_to_room(event: dict):
     messaging_handler = MessagingRoom(db=mongo, room_id=None, trip_id=None)
