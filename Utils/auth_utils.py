@@ -58,7 +58,9 @@ def log_login(username, email, token_data):
     token_data.update({
         'login_time': login_timestamp,
         'user_name': username,
-        'email': email
+        'email': email,
+        'active': True  # Set active to True on login
+
     })
     return token_data
 
