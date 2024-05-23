@@ -631,4 +631,33 @@ class TripDataHandler:
             return {'statusCode': 500,
                     'body': json.dumps({'message': 'Internal Server Error', 'Exception': str(e)})}
 
+    async def get_trip_participants(self,event: dict):
+        try:
+            trip_id = event.get("trip_id")
+            # Fetch participants from the trip
+            trip = await self.db.trip.find_one({"trip_id": trip_id})
+            if not trip:
+                raise HTTPException(status_code=404, detail="Trip not found")
+
+            participants = trip.get("participants", [])
+            if not participants:
+                raise HTTPException(status_code=404, detail="No participants found for this trip")
+
+            # Retrieve count and profile pics of participants from the user database
+            participant_profiles = await self.db.user.find(
+                {"email_id": {"$in": participants}},
+                {"email_id": 1, "profile_picture": 1}
+            ).to_list(None)
+            print("participant_profiles",participant_profiles)
+            profile_pics = {profile["email_id"]: profile["profile_picture"] for profile in participant_profiles}
+            participant_count = len(participants)
+
+            return {
+                "count": participant_count,
+                "profile_pics": profile_pics
+            }
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+
 
