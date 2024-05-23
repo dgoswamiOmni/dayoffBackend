@@ -552,3 +552,83 @@ class TripDataHandler:
             # logging.error(f"An error occurred: {str(e)}")
             return {'statusCode': 500, 'body': json.dumps({'message': 'Internal Server Error'})}
 
+
+    async def find_users_with_matching_preferences(self, event: dict):
+        try:
+            preferred_dates = event.get("preferred_date")
+            preferred_location = event.get("preferred_location")
+            matching_users = []
+
+            if not preferred_dates or not preferred_location:
+                logging.error("Preferred dates or locations not provided in the event.")
+                return {'statusCode': 400,
+                        'body': json.dumps({'message': 'Bad Request: Missing preferred dates or locations'})}
+
+            preferred_start = datetime.datetime.fromisoformat(preferred_dates[0]).date()
+            preferred_end = datetime.datetime.fromisoformat(preferred_dates[1]).date()
+
+            # Fetch trips with preferred location
+            trips = await self.db.trip.find(
+                {"location.code": {"$in": [loc.upper() for loc in preferred_location]}}).to_list(None)
+            logging.info("Retrieved trips from database: %s", trips)
+            if not trips:
+                logging.info("No trips found for the preferred locations.")
+                return {'statusCode': 200, 'body': {'count': 0, 'profile_pics': {}}}
+
+            # Fetch user preferences
+            users = await self.db.user_preferences.find().to_list(None)
+            logging.info("Retrieved user preferences from database: %s", users)
+
+            for user in users:
+                user_dates = user['preferred_dates']
+                user_countries = user['preferred_countries']
+
+                for date_range in user_dates:
+                    try:
+                        user_start, user_end = map(lambda x: datetime.datetime.fromisoformat(x[:-1]), date_range)
+                        user_start = user_start.date()
+                        user_end = user_end.date()
+                        logging.info("User start date: %s", user_start)
+                        logging.info("User end date: %s", user_end)
+                    except Exception as e:
+                        logging.error("Error converting user dates to datetime objects: %s", e)
+                        continue
+
+                    for country in user_countries:
+                        logging.info("User preferred country: %s", country['code'].upper())
+
+                        # Compare the dates with a 5-day range
+                        for trip in trips:
+                            trip_start = datetime.datetime.fromisoformat(trip['start_date']).date()
+                            trip_end = datetime.datetime.fromisoformat(trip['end_date']).date()
+
+                            if (
+                                    ((trip_start - datetime.timedelta(
+                                        days=5) <= preferred_end <= trip_end + datetime.timedelta(days=5)) or
+                                     (trip_start - datetime.timedelta(
+                                         days=5) <= preferred_start <= trip_end + datetime.timedelta(days=5)))
+                            ) and country['code'].upper() == trip['location']['code']:
+                                matching_users.append(user['email_id'])
+                                break  # No need to continue checking countries if a match is found
+
+            logging.info("Matching users: %s", matching_users)
+
+            # Retrieve the profiles of the matching users from the database
+            profiles = await self.db.user.find({"email_id": {"$in": matching_users}}).to_list(None)
+            logging.info("Retrieved profiles from database: %s", profiles)
+
+            profile_pics = {profile["email_id"]: profile["profile_picture"] for profile in profiles}
+
+            return {
+                'statusCode': 200,
+                'body': {
+                    'count': len(matching_users),
+                    'profile_pics': profile_pics
+                }
+            }
+        except Exception as e:
+            logging.error("Error finding users with matching preferences: %s", e)
+            return {'statusCode': 500,
+                    'body': json.dumps({'message': 'Internal Server Error', 'Exception': str(e)})}
+
+
