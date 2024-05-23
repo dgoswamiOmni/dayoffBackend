@@ -181,7 +181,7 @@ class UserDataHandler:
             token_data = log_login(self.username,self.email,token_data)
             token_data['email'] = self.email  # Add the email to the token data
 
-            existing_session = await db.session.find_one({"email": self.email})
+            existing_session = await db.session.find_one({"email": self.email,"active": False})
             if existing_session:
                 await db.session.update_one({"email": self.email}, {"$set": token_data})
             else:
