@@ -181,7 +181,22 @@ class UserDataHandler:
             token_data = log_login(self.username,self.email,token_data)
             token_data['email'] = self.email  # Add the email to the token data
 
-            session_start = await db.session.insert_one(token_data)
+            existing_session = await db.session.find_one({"email": self.email})
+            if existing_session:
+                await db.session.update_one({"email": self.email}, {"$set": token_data})
+            else:
+                await db.session.insert_one(token_data)
+
+            return {'statusCode': 200,
+                    'body': json.dumps({
+                        'message': 'Login successful',
+                        'session_token': token_data['token'],
+                        'user_details': {
+                            'country': country,
+                            'job': job,
+                            'username': self.username
+                        }
+                    })}
 
             return {'statusCode': 200,
                     'body': json.dumps({
