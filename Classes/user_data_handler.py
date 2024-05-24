@@ -183,7 +183,7 @@ class UserDataHandler:
 
             existing_session = await db.session.find_one({"email": self.email,"active": False})
             if existing_session:
-                await db.session.update_one({"email": self.email}, {"$set": token_data})
+                await db.session.update_one({"_id": existing_session["_id"]}, {"$set": token_data, "$unset": {"logout_time": ""}})
             else:
                 await db.session.insert_one(token_data)
 
