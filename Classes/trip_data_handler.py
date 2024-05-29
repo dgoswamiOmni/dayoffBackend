@@ -536,7 +536,7 @@ class TripDataHandler:
             # Query to find the trip details
             query = {
                 'trip_id': trip_id,
-                'participants': creator_email
+                'creator_email': creator_email
             }
 
             # Find the trip details from the database
@@ -546,7 +546,7 @@ class TripDataHandler:
                 return {'statusCode': 200,
                         'body': json.dumps({'message': 'Trip details found', 'trip_details': trip_details})}
             else:
-                return {'statusCode': 404, 'body': json.dumps({'message': 'Trip not found or user not a participant'})}
+                return {'statusCode': 404, 'body': json.dumps({'message': 'Trip not found or user not found'})}
         except Exception as e:
             # Log the exception for debugging purposes
             # logging.error(f"An error occurred: {str(e)}")
