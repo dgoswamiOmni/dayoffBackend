@@ -3,14 +3,14 @@ FROM python:3.9-slim
 
 # Set environment variables 
 # This is temporary, we'll change to secrets manager / docker secrets in production
-ENV AWS_SECRET_ACCESS_KEY=<YOUR_AWS_SECRET_ACCESS_KEY> \
-    AWS_ACCESS_KEY_ID="<YOUR_ACCESS_KEY_ID>" \
-    S3_BUCKET_NAME=<YOUR_S3_BUCKET_NAME> \
-    AWS_REGION=<YOUR_AWS_REGION> \
-    MONGO_URI="<YOUR_MONGO_URI>" \
-    MONGO_DB_NAME="<YOUR_MONGO_DB_NAME>" \
-    MONGO_COLLECTION_NAME="<YOUR_MONGO_COLLECTION_NAME>" \
-    SENDGRID_API_KEY="<YOUR_SENDGRID_API_KEY>" \
+ENV AWS_SECRET_ACCESS_KEY_FILE=/run/secrets/aws_secret_access_key \
+    AWS_ACCESS_KEY_ID_FILE=/run/secrets/aws_access_key_id \
+    S3_BUCKET_NAME_FILE=/run/secrets/s3_bucket_name \
+    AWS_REGION_FILE=/run/secrets/aws_region \
+    MONGO_URI_FILE=/run/secrets/mongo_uri \
+    MONGO_DB_NAME_FILE=/run/secrets/mongo_db_name \
+    MONGO_COLLECTION_NAME_FILE=/run/secrets/mongo_collection_name \
+    SENDGRID_API_KEY_FILE=/run/secrets/sendgrid_api_key \
     PYTHONUNBUFFERED=1
 
 # Set the working directory to /app 
