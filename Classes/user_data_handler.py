@@ -497,7 +497,7 @@ class UserDataHandler:
             # Extract file extension
             _, file_extension = os.path.splitext(file.filename)
             # Upload image to S3 using the utility function
-            bucket_name = "hello-blog"
+            bucket_name = "profile-pics-dayoff"
             file_name = f"{email}_profile_picture{file_extension}"
             # s3_url = upload_to_s3(bucket_name, file_name, image_data)
             s3_url = upload_to_s3(bucket_name, file_name, file.file)
