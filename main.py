@@ -7,6 +7,7 @@ from Classes.trip_data_handler import TripDataHandler
 from Classes.messaging_room_handler import MessagingRoom
 from Classes.otp_handler import OtpHandler
 from Utils.mongo_utils import MongoUtils
+from typing import Dict
 
 app = FastAPI(title="DayOff APIs")
 handler = Mangum(app)
