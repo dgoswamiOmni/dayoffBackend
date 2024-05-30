@@ -4,6 +4,7 @@ FROM python:3.9-slim
 # Set environment variables 
 # This is temporary, we'll change to secrets manager / docker secrets in production
 ENV AWS_SECRET_ACCESS_KEY=<YOUR_AWS_SECRET_ACCESS_KEY> \
+    AWS_ACCESS_KEY_ID="<YOUR_ACCESS_KEY_ID>" \
     S3_BUCKET_NAME=<YOUR_S3_BUCKET_NAME> \
     AWS_REGION=<YOUR_AWS_REGION> \
     MONGO_URI="<YOUR_MONGO_URI>" \
