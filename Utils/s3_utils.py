@@ -7,9 +7,11 @@ S3_REGION=os.environ.get('S3_REGION')
 
 def upload_to_s3(bucket_name, file_name, file_data):
     try:
+        # Initialize S3 client
         s3 = boto3.client('s3',
-                          aws_access_key_id=os.environ.get('AWS_ACCESS_KEY_ID'),
-                          aws_secret_access_key=os.environ.get('AWS_SECRET_ACCESS_KEY'),region_name=os.environ.get('S3_REGION'))
+                          aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+                          aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
+                          region_name=os.getenv('AWS_REGION'))
         s3.upload_fileobj(file_data, bucket_name, file_name,ExtraArgs={'ContentType': 'image/jpeg'})
         return f"https://{S3_BUCKET}.s3.{S3_REGION}.amazonaws.com/{filename}"
     except NoCredentialsError:
