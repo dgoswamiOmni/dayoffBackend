@@ -16,3 +16,5 @@ def upload_to_s3(bucket_name, file_name, file_data):
         raise Exception("S3 credentials not available")
     except Exception as e:
         raise Exception(f"Exception in upload_to_s3: {str(e)}")
+
+
