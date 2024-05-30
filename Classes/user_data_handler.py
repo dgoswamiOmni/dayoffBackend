@@ -145,6 +145,7 @@ from fastapi import HTTPException, File, UploadFile
 from Utils.s3_utils import upload_to_s3
 import logging
 from fastapi.responses import JSONResponse
+import os
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
