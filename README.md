@@ -3,7 +3,7 @@
 
 ## Overview
 
-The Day Of Backend is the server-side component of the Day Of application, built with FastAPI in Python and Docker for containerization. It handles data storage, retrieval, and processing for event management.
+The Day Of Backend is the serverless component of the Day Of application, leveraging AWS Lambda and S3 for its infrastructure,built with FastAPI in Python and Docker for containerization. It handles data storage, retrieval, and processing for event management.
 
 ## Features
 
@@ -11,6 +11,8 @@ The Day Of Backend is the server-side component of the Day Of application, built
 - **User Authentication**: Secure user authentication and authorization.
 - **Data Persistence**: Store event and user data reliably.
 - **API Endpoints**: Exposes RESTful API endpoints for client communication.
+- - **Data Persistence**: Store event and user data reliably using AWS S3.
+
 
 ## Technologies Used
 
@@ -19,6 +21,10 @@ The Day Of Backend is the server-side component of the Day Of application, built
 - **MongoDB**: MongoDB is a document-oriented NoSQL database used for data storage.
 - **PyMongo**: PyMongo is the Python driver for MongoDB, used for interacting with the MongoDB database.
 - **JWT (JSON Web Tokens)**: JWT is used for user authentication and token-based access control.
+- - **AWS Lambda**: Serverless compute service for running code without provisioning or managing servers.
+- **AWS S3**: Object storage service for storing and retrieving data.
+
+
 
 ## Getting Started
 
@@ -30,3 +36,8 @@ The Day Of Backend is the server-side component of the Day Of application, built
 ## API Documentation
 
 The API documentation will be available at `http://0.0.0.0:8000/docs` after the application is running.
+
+## Licensing
+
+This project is currently under development and its licensing information will be added soon. Stay tuned!
+
