@@ -1,6 +1,3 @@
-Got it! Here's an updated version of the README tailored for a backend using Python FastAPI and Docker:
-
----
 
 # Day Of Backend
 
