@@ -1,9 +1,9 @@
 
-# Day Of Backend
+# DayOff Backend
 
 ## Overview
 
-The Day Of Backend is the serverless component of the Day Of application, leveraging AWS Lambda and S3 for its infrastructure,built with FastAPI in Python and Docker for containerization. It handles data storage, retrieval, and processing for event management.
+The DayOff Backend is the serverless component of the DayOff application, leveraging AWS Lambda and S3 for its infrastructure,built with FastAPI in Python and Docker for containerization. It handles data storage, retrieval, and processing for event management.
 
 ## Features
 
