@@ -19,4 +19,4 @@ Install Docker and Docker Compose: Follow the instructions on the Docker website
 Set up environment variables: Create a .env file and add necessary environment variables like MONGO_URI, JWT_SECRET, etc.
 Build and run the Docker containers: Run docker-compose up --build to build the Docker containers and start the application.
 API Documentation
-The API documentation will be available at http://localhost:8000/docs after the application is running.
+The API documentation will be available at http://0.0.0.0:8000/docs after the application is running.
