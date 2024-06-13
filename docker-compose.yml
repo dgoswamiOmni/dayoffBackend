@@ -1,0 +1,60 @@
+services:
+  my-dayoff-app:
+    image: my-dayoff-app:latest
+    ports:
+      - "8000:8000"
+    environment:
+      AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID}"
+      AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY}"
+      S3_BUCKET_NAME: "${S3_BUCKET_NAME}"
+      AWS_REGION: "${AWS_REGION}"
+      MONGO_URI: "${MONGO_URI}"
+      MONGO_DB_NAME: "${MONGO_DB_NAME}"
+      MONGO_COLLECTION_NAME: "${MONGO_COLLECTION_NAME}"
+      SENDGRID_API_KEY: "${SENDGRID_API_KEY}"
+    secrets:
+      - aws_secret_access_key
+      - aws_access_key_id
+      - s3_bucket_name
+      - aws_region
+      - mongo_uri
+      - mongo_db_name
+      - mongo_collection_name
+      - sendgrid_api_key
+
+  my-frontend-app:
+    image: dayoff-frontend-app:latest
+    ports:
+      - "19000:19000"
+      - "19001:19001"
+    depends_on:
+      - my-dayoff-app
+    environment:
+      # Environment variables for frontend
+      EXPO_PUBLIC_API_URL: "http://my-dayoff-app:8000"
+    command: ["sh", "-c", "yarn install && expo start --tunnel"]
+
+    #    secrets:
+#      - frontend_secret_key
+#      - another_frontend_secret
+    # volumes:
+    #   - ./frontend:/app  # If frontend files are needed to be mounted
+    #   - /app/node_modules  # If using volumes, ensure not to overwrite node_modules
+
+secrets:
+  aws_secret_access_key:
+    file: ./secrets/aws_secret_access_key.txt
+  aws_access_key_id:
+    file: ./secrets/aws_access_key_id.txt
+  s3_bucket_name:
+    file: ./secrets/s3_bucket_name.txt
+  aws_region:
+    file: ./secrets/aws_region.txt
+  mongo_uri:
+    file: ./secrets/mongo_uri.txt
+  mongo_db_name:
+    file: ./secrets/mongo_db_name.txt
+  mongo_collection_name:
+    file: ./secrets/mongo_collection_name.txt
+  sendgrid_api_key:
+    file: ./secrets/sendgrid_api_key.txt
